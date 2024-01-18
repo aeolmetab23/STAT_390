@@ -1,0 +1,139 @@
+---
+title: "Covid Prediction"
+author: "Alex Olmeta, Alex Paine, Donald Stricklin"
+format: revealjs
+embed-resources: true
+editor: visual
+---
+
+## Project Overview
+
+```{r}
+#| echo: false
+#| output: false
+library(tidyverse)
+library(readr)
+library(kableExtra)
+
+covid <- read_csv("data/owid-covid-data.csv") %>% 
+  janitor::clean_names()
+```
+
+::: {.fragment .fade-in-then-semi-out}
+-   The world was not ready for the severe impact of COVID-19.
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   7,010,568 Reported COVID-19 deaths (as of 12/31/23)
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   Models on disease growth at the time were poorly equipped to stifle the spread of this deadly disease
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   This project has the potential to evaluate where a country stands in terms of projected death rate, thereby reinforcing or introducing new methods to prevent the spread, and thus, preventing the loss of innocent lives.
+:::
+
+## Objectives
+::: {.fragment .fade-in}
+***To Create a Predictive Model to Predict the Number of Deaths of an Unseen Country***
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Assess the model's predictive performance by evaluating its accuracy, precision, recall, and other relevant metrics.
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Model has application for both future COVID-19 variants + future similar diseases
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   Our proposed model would take several weeks of prior data on a previously unseen country and predict the number of deaths in the coming weeks.
+:::
+
+## The Data
+
+::: {.fragment .fade-in-then-semi-out}
+-   Comprehensive scope of COVID-19 metrics, including cases, deaths, vaccinations, and ICU admissions for 200+ countries/territories
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- After initial preprocessing, have 255,000 observations and 67 variables
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Significant missingness issues - total cases reported every week, not day.
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Some countries also do not provide ICU and vaccination rates making them harder to work with
+:::
+
+## Visualizing the Amount of New Deaths
+
+```{r}
+#| output-location: slide 
+df <- covid %>% 
+  filter(
+    !is.na(new_deaths),
+    location %in% c("United States", "Canada", "France", "Germany", "United Kingdom")
+  ) %>% 
+  mutate(
+    location = factor(location,
+                      levels = c("United States", "United Kingdom", "Germany", "France", "Canada"))
+  )
+ggplot(df, aes(date, new_deaths, color = location)) +
+  #geom_point(alpha = 0.8) + 
+  geom_line(alpha = 0.8) + 
+  theme_minimal() +
+  labs(
+    x = "",
+    y = "Deaths",
+    title = "New Covid Deaths since 2020",
+    color = "",
+    caption = "Source:  Our World in Data"
+  )
+```
+
+## Cleaning and Preprocessing
+
+::: {.fragment .fade-in-then-semi-out}
+- Data was already largely preprocessed and came in one neat `.csv` file
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Had to remove ~20,000 rows of regional summary information (e.g., case data for Europe) as these were redundant
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Fair amount of missing data will need to be imputed (daily vs. weekly)
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- Some predictors are correlated
+:::
+
+## Conclusion
+
+::: {.fragment .fade-in-then-semi-out}
+- Develop model based on daily COVID-19 data from the last 4 years that predicts the number of deaths in a country
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+- We anticipate fewer deaths all over the world in the near future as COVID-19 has been trending downward
+:::
+
+::: {.fragment .fade-in}
+- Challenges
+  - Predictor selection
+  - Missing data
+  - Computation time
+:::
+
+
+## Citations
+
+- World Health Organization 2023 data.who.int, WHO Coronavirus (COVID-19) dashboard > Deaths [Dashboard]. [https://data.who.int/dashboards/covid19/deaths](https://data.who.int/dashboards/covid19/deaths)
+
+- Mathieu, E., Ritchie, H., Ortiz-Ospina, E. et al. A global database of COVID-19 vaccinations. Nat Hum Behav (2021). [https://doi.org/10.1038/s41562-021-01122-8](https://doi.org/10.1038/s41562-021-01122-8)
