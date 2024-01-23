@@ -17,6 +17,10 @@ library(kableExtra)
 
 covid <- read_csv("data/owid-covid-data.csv") %>% 
   janitor::clean_names()
+
+
+unique(covid$location)
+
 ```
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -36,16 +40,17 @@ covid <- read_csv("data/owid-covid-data.csv") %>%
 :::
 
 ## Objectives
+
 ::: {.fragment .fade-in}
 ***To Create a Predictive Model to Predict the Number of Deaths of an Unseen Country***
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Assess the model's predictive performance by evaluating its accuracy, precision, recall, and other relevant metrics.
+-   Assess the model's predictive performance by evaluating its accuracy, precision, recall, and other relevant metrics.
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Model has application for both future COVID-19 variants + future similar diseases
+-   Model has application for both future COVID-19 variants + future similar diseases
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -59,15 +64,15 @@ covid <- read_csv("data/owid-covid-data.csv") %>%
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- After initial preprocessing, have 255,000 observations and 67 variables
+-   After initial preprocessing, have 255,000 observations and 67 variables
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Significant missingness issues - total cases reported every week, not day.
+-   Significant missingness issues - total cases reported every week, not day.
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Some countries also do not provide ICU and vaccination rates making them harder to work with
+-   Some countries also do not provide ICU and vaccination rates making them harder to work with
 :::
 
 ## Visualizing the Amount of New Deaths
@@ -99,41 +104,40 @@ ggplot(df, aes(date, new_deaths, color = location)) +
 ## Cleaning and Preprocessing
 
 ::: {.fragment .fade-in-then-semi-out}
-- Data was already largely preprocessed and came in one neat `.csv` file
+-   Data was already largely preprocessed and came in one neat `.csv` file
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Had to remove ~20,000 rows of regional summary information (e.g., case data for Europe) as these were redundant
+-   Had to remove \~20,000 rows of regional summary information (e.g., case data for Europe) as these were redundant
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Fair amount of missing data will need to be imputed (daily vs. weekly)
+-   Fair amount of missing data will need to be imputed (daily vs. weekly)
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- Some predictors are correlated
+-   Some predictors are correlated
 :::
 
 ## Conclusion
 
 ::: {.fragment .fade-in-then-semi-out}
-- Develop model based on daily COVID-19 data from the last 4 years that predicts the number of deaths in a country
+-   Develop model based on daily COVID-19 data from the last 4 years that predicts the number of deaths in a country
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
-- We anticipate fewer deaths all over the world in the near future as COVID-19 has been trending downward
+-   We anticipate fewer deaths all over the world in the near future as COVID-19 has been trending downward
 :::
 
 ::: {.fragment .fade-in}
-- Challenges
-  - Predictor selection
-  - Missing data
-  - Computation time
+-   Challenges
+    -   Predictor selection
+    -   Missing data
+    -   Computation time
 :::
-
 
 ## Citations
 
-- World Health Organization 2023 data.who.int, WHO Coronavirus (COVID-19) dashboard > Deaths [Dashboard]. [https://data.who.int/dashboards/covid19/deaths](https://data.who.int/dashboards/covid19/deaths)
+-   World Health Organization 2023 data.who.int, WHO Coronavirus (COVID-19) dashboard \> Deaths \[Dashboard\]. <https://data.who.int/dashboards/covid19/deaths>
 
-- Mathieu, E., Ritchie, H., Ortiz-Ospina, E. et al. A global database of COVID-19 vaccinations. Nat Hum Behav (2021). [https://doi.org/10.1038/s41562-021-01122-8](https://doi.org/10.1038/s41562-021-01122-8)
+-   Mathieu, E., Ritchie, H., Ortiz-Ospina, E. et al. A global database of COVID-19 vaccinations. Nat Hum Behav (2021). <https://doi.org/10.1038/s41562-021-01122-8>
