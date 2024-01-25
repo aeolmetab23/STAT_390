@@ -36,6 +36,11 @@ skim_without_charts(covid_clean)
 
 save(covid_clean, file = "data/covid_clean.rda")
 
+covid_complete %>% 
+  filter(
+    location == "United States"
+  ) %>% 
+  count()
 
 
 
