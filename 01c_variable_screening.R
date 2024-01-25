@@ -186,6 +186,15 @@ save(rf_fit_mae_log, parameter_graph_mae_log,
 # Examine on Testing Data ----
 ## Did not fit model on the entire training data as this was for feature selection
 ### still worth seeing some early results
+load("results/var_screen_mae_log.rda")
+load("results/var_screen_rsq_log.rda")
+load("results/var_screen_rmse_log.rda")
+
+parameter_graph_mae_log
+parameter_graph_rsq_log
+parameter_graph_rmse_log
+
+parameter_graph_rmse_clean
 
 ## RMSE
 covid_metric <- metric_set(rmse)
@@ -207,3 +216,4 @@ covid_metric <- metric_set(mae)
 predict(rf_fit_mae_log, new_data = covid_test) %>%
   bind_cols(covid_test %>% select(new_deaths_log)) %>%
   covid_metric(truth = new_deaths_log, estimate = .pred) # 0.320
+
