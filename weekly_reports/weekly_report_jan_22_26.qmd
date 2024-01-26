@@ -1,0 +1,46 @@
+---
+title: "Weekly Progress Report"
+author: "Data Wizards: Alex Olmeta, Alex Paine, Donald Stricklin"
+date: today
+format:
+  html:
+    toc: true
+    self-contained: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+---
+# Week of January 22-26
+
+## Progress/Accomplishments:
+
+- Decided to remove any rows that did not report a new case for that day.
+  - Would have meant we would be imputing our target variable and ultimatley decided it woudl be beneficial to remove it entirely.
+  - Updated data set: **48,877** observations of **67** columns
+    - Still a lot of missing data
+
+- Each created our own GitHub branches
+
+- Experimented with Random Forest feature selection, results were encouraging, however more work needs to be done in order to begin building our models
+
+## Problems/Challenges:
+
+- Have a lot of missing data in columns relating to vaccines, hospitalizations, testing, and others even after the removal of the rows without any new cases reported.
+  
+- Another problem we have encountered is whether or not to change any `NA` values in the columns related to vaccine information to **0** if their corresponding date is before vaccines were introduced.
+  - Same applies for boosters
+
+- Figuring out which (if any) columns should be turned into factors
+  - `iso_code`, `continent`, and `location` obvious factors columns
+  - Other variables: `median_age`, `gdp_per_capita`, `cardiovasc_death_rate`, `handwashing_facilities`, `life_expectancy`, etc. have little to no variance, may be beneficial to turn them into factors as well.
+
+## Plan/Next Steps:
+
+- Come to a decision on how and which variables will be imputed
+  - Can either be accomplished in the setup phase or as a step in the recipe 
+
+- Assign jobs to individual team members for better efficiency
+
+- Start to think about what types of recipes and interactions we want to have in our models
