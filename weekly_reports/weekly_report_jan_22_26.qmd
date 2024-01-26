@@ -17,9 +17,9 @@ execute:
 ## Progress/Accomplishments:
 
 - Decided to remove any rows that did not report a new case for that day.
-  - Would have meant we would be imputing our target variable and ultimatley decided it woudl be beneficial to remove it entirely.
+  - Would have meant we would be imputing our target variable and ultimatley decided it would be beneficial to remove it entirely.
   - Updated data set: **48,877** observations of **67** columns
-    - Still a lot of missing data
+    - Still a lot of missing data, but will address this with imputation
 
 - Each created our own GitHub branches
 
