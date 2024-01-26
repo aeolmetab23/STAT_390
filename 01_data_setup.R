@@ -12,22 +12,14 @@ covid <- cv %>%
     , str_length(iso_code) < 8
   )
 
-# Skim Data
-skim_without_charts(covid)
-## columns that begin with excess_mortality have a 0.0464 complete rate
-## with weekly_icu/hosp also under 0.1
-## Date Range: 01/01/20 - 01/17/24
+covid_names <- covid %>% 
+  select(c(1:3, 49:63))
 
-# Third Data Frame Update ----
-covid_complete <- covid %>% 
-  select(
-    !matches(c('excess_mortality')))
+col_names <- names(covid_names)
+covid <- covid %>%
+  mutate(across(all_of(col_names), as.factor))
 
-skim_without_charts(covid_complete)
-
-# Only Rows with new_cases reported
-
-covid_clean <- covid_complete %>% 
+covid_clean <- covid %>% 
   filter(
     !is.na(new_cases)
   )
@@ -36,11 +28,7 @@ skim_without_charts(covid_clean)
 
 save(covid_clean, file = "data/covid_clean.rda")
 
-covid_complete %>% 
-  filter(
-    location == "United States"
-  ) %>% 
-  count()
+write_csv(covid_clean, file = "covid_clean.csv")
 
 
 
