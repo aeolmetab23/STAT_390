@@ -19,15 +19,9 @@ covid_sum <- covid_clean %>%
   )
 
 ts_data <- ts(covid_sum, frequency = 52)
-decomposition_result <- decompose(ts_data)
 
-trend_component <- decomposition_result$trend
-seasonal_component <- decomposition_result$seasonal
-residual_component <- decomposition_result$residual
+# Autocorrelation plot
+acf(ts_data, lag.max = 20)
 
-# Plot the components
-plot(trend_component, main = "Trend Component")
-plot(seasonal_component, main = "Seasonal Component")
-plot(residual_component, main = "Residual Component")
-
-
+# Partial autocorrelation plot
+pacf(ts_data, lag.max = 20)
