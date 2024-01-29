@@ -4,7 +4,7 @@ author: "Data Wizards: Alex Olmeta, Alex Paine, Donald Stricklin"
 date: today
 format:
   html:
-    toc: true
+    toc: false
     self-contained: true
     code-fold: show
     link-external-newwindow: true
