@@ -15,13 +15,19 @@ covid_sum <- covid_clean %>%
   group_by(date) %>% 
   select(date, new_cases) %>% 
   summarise(
-    num_cases = sum(new_cases, na.rm = T)
+    new_cases = sum(new_cases, na.rm = T)
   )
 
 ts_data <- ts(covid_sum, frequency = 52)
 
+
+
 # Histogram
-hist(ts_data, main = "Histogram", xlab = "Value")
+ggplot(covid_sum, aes(new_cases)) +
+  geom_histogram(bins = 100)
+
+ggplot(covid_sum, aes(new_cases)) +
+ geom_density()
 
 # Box Plot
 boxplot(ts_data, main = "Box Plot")
