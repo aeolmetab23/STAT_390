@@ -77,19 +77,34 @@ covid_65 <- covid_clean %>%
          date < "2024-01-01") %>% 
   group_by(date, age_65_percent_group) %>% 
   select(
-    date, age_65_percent_group, total_cases, total_deaths, new_cases, total_vaccinations
+    date, age_65_percent_group, total_cases, new_cases, total_deaths, new_deaths
   ) %>% 
   summarise(
     across(where(is.numeric), sum, na.rm = TRUE)
-  ) %>% 
-  filter(
-    total_deaths > 0
   )
 
 ggplot(covid_65,
        aes(date, total_cases, color = age_65_percent_group)) +
   geom_line() +
   theme_minimal()
+
+covid_65 %>% 
+  filter(
+    age_65_percent_group == "15-19.9"
+  ) %>% 
+  view()
+
+covid_65 <- covid_65 %>% 
+  group_by(age_65_percent_group) %>% 
+  mutate(
+    total_deaths = cumsum(new_deaths),
+    total_cases = cumsum(new_cases)
+  )
+
+cumsum(covid_65$new_deaths)
+covid_65$total_cases <- cumsum(covid_65$new_cases)
+
+
 
 
 

@@ -9,9 +9,6 @@ library(stats)
 load(file = "data/covid_clean.rda")
 
 covid_sum <- covid_clean %>% 
-  filter(
-    date < "2024-01-01"
-  ) %>% 
   group_by(date) %>% 
   select(date, new_cases) %>% 
   summarise(
@@ -21,7 +18,7 @@ covid_sum <- covid_clean %>%
 ts_data <- ts(covid_sum, frequency = 52)
 
 # Autocorrelation plot
-acf(ts_data, lag.max = 20)
+acf(ts_data)
 
 # Partial autocorrelation plot
-pacf(ts_data, lag.max = 20)
+pacf(ts_data)
