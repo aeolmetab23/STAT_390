@@ -51,6 +51,11 @@ covid_clean <- covid_no_corr %>%
   select(-c(total_cases, total_deaths, total_tests, total_vaccinations, total_boosters)) %>% 
   select(!matches(c("_smoothed")))
 
+covid_clean <- covid_clean %>% 
+  filter(
+    location != "China"
+  )
+
 # Save Dataset
 save(covid_clean, file = "data/covid_clean.rda")
 
