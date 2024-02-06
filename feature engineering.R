@@ -16,13 +16,15 @@ US_data <- data %>%
 
 # country's with the highest number of observations
 data %>% 
-  count(iso_code) %>% 
+  count(location) %>% 
+  filter(location == "China") %>% 
   arrange(-n)
 
 
 ##################### feature engineering
+# date as date class
 fdata <- data %>% 
-  mutate(datee = ymd(date)) %>%
+  mutate(datee = lubridate::ymd(date)) %>%
   select(-date) %>% 
   mutate(date = datee) %>% 
   select(-datee) %>% 
@@ -38,7 +40,22 @@ nas %>%
   arrange(-pct_missing) %>% 
   print(n=70)
 
+# missing icu by country
+fdata %>% 
+  group_by(iso_code) %>% 
+  summarize(na_pct = mean(is.na(icu_patients))) %>% 
+  arrange(na_pct) %>% 
+  print(n=40)
 
+# missing hosp_patients
+fdata %>% 
+  group_by(iso_code) %>% 
+  summarize(na_pct = mean(is.na(hosp_patients))) %>% 
+  arrange(na_pct) %>% 
+  print(n=40)
+
+
+############################# lags
 # creating lag variables, rolling windows, and date time features
 # first need rolling functions
 mean_roll_6 <- rollify(mean, window = 6)
@@ -69,6 +86,4 @@ gdata <- fdata %>%
          week = lubridate::week(date))
 
 write_csv(gdata, file = "data/covid_clean_lags.csv")
-
-
 
