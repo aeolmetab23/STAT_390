@@ -14,3 +14,11 @@ data %>%
   print(n=255)
 
 
+# getting rid of cumulative mortality columns
+data <- read.csv("data/covid_clean.csv")
+
+data <- data %>% 
+  select(-c(excess_mortality_cumulative_absolute, excess_mortality_cumulative))
+
+# writing new csv
+write_csv(data, "data/covid_cleaner.csv")
