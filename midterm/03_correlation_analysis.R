@@ -5,12 +5,13 @@ library(forecast)
 library(mice)
 library(caret)
 library(stats)
+library(zoo)
 
 load(file = "data/covid_clean.rda")
 
 covid_sum <- covid_clean %>% 
   group_by(date) %>% 
-  select(date, new_cases) %>% 
+  select(new_cases) %>% 
   summarise(
     num_cases = sum(new_cases, na.rm = T)
   )
@@ -18,7 +19,7 @@ covid_sum <- covid_clean %>%
 ts_data <- ts(covid_sum, frequency = 52)
 
 # Autocorrelation plot
-acf(ts_data)
+acf(coredata(ts_data))
 
 # Partial autocorrelation plot
-pacf(ts_data)
+pacf(coredata(ts_data))

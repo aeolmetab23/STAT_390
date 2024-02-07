@@ -38,9 +38,9 @@ covid_clean <- covid_clean %>%
                                                                    "15-19.9", "20-24.9", "≥ 25"))
   )
 
-### Total Cases
+### New Cases
 ggplot(covid_clean %>% filter(!is.na(age_65_percent_group)),
-       aes(age_65_percent_group, total_cases)) +
+       aes(age_65_percent_group, new_cases)) +
   geom_col() +
   theme_minimal() +
   labs(
@@ -49,26 +49,26 @@ ggplot(covid_clean %>% filter(!is.na(age_65_percent_group)),
     subtitle = "Total Number of Cases for Percentage of Country Population that is 65 and Older"
   )
 
-### Total Deaths
+### New Deaths
 ggplot(covid_clean %>% filter(!is.na(age_65_percent_group)),
        aes(age_65_percent_group, total_deaths)) +
-  geom_col() +
+  geom_col(color = "lightblue") +
   theme_minimal() +
   labs(
-    x = "Percent",
+    x = "Percent of Population 65 and Older",
     y = "Total Deaths",
-    subtitle = "Total Number of Deaths for Percentage of Country Population that is 65 and Older"
+    title = "Total Number of Deaths"
   )
 
 ### Total Vaccinations
 ggplot(covid_clean %>% filter(!is.na(age_65_percent_group)),
        aes(age_65_percent_group, total_vaccinations)) +
-  geom_col() +
+  geom_col(color = "lightblue") +
   theme_minimal() +
   labs(
-    x = "Percent",
+    x = "Percent of Population 65 and Older",
     y = "Total Vaccinations",
-    title = "Total Number of Vaccinations for Percentage of Country Population that is 65 and Older"
+    title = "Total Number of Vaccinations"
   )
 
 
@@ -83,26 +83,33 @@ covid_65 <- covid_clean %>%
     across(where(is.numeric), sum, na.rm = TRUE)
   )
 
-ggplot(covid_65,
-       aes(date, total_cases, color = age_65_percent_group)) +
-  geom_line() +
-  theme_minimal()
-
-covid_65 %>% 
-  filter(
-    age_65_percent_group == "15-19.9"
-  ) %>% 
-  view()
-
 covid_65 <- covid_65 %>% 
   group_by(age_65_percent_group) %>% 
   mutate(
     total_deaths = cumsum(new_deaths),
     total_cases = cumsum(new_cases)
-  )
+  ) %>% 
+  ungroup()
 
-cumsum(covid_65$new_deaths)
-covid_65$total_cases <- cumsum(covid_65$new_cases)
+ggplot(covid_65,
+       aes(date, total_cases, color = age_65_percent_group)) +
+  geom_line(linewidth = 1.3) +
+  labs(
+    color = "% of Population \n65 and Older",
+    y = NULL,
+    x = "Date",
+    title = "Total Cases"
+  ) +
+  theme_minimal()
+
+
+
+ggplot(covid_clean, aes(gdp_per_capita)) +
+  geom_boxplot()
+
+ggplot(covid_clean, aes(median_age, total_cases)) +
+  geom_line() +
+  geom_point()
 
 
 
