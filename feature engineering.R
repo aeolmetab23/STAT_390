@@ -40,6 +40,11 @@ nas %>%
   arrange(-pct_missing) %>% 
   print(n=70)
 
+# number of observations for CAN
+fdata %>% 
+  filter(iso_code == "CAN") %>% 
+  select(date, new_cases)
+
 # missing icu by country
 fdata %>% 
   group_by(iso_code) %>% 
