@@ -85,3 +85,48 @@ ADF_summary %>%
   filter(p1<0)
 
 
+####################################### ADF round 2
+# taking differences example
+as_tibble(country_data[["Italy"]]) %>% 
+  mutate(new_cases = c(0, diff(new_cases)))
+
+
+#setting up ADF summary tibble
+ADF_summary2 <- tibble(country = "", test_stat = 0, p1 = 0, p5 = 0, p10 = 0)
+# running ADF for each
+for (i in seq_along(country_data)) {
+  #save country data as tibble
+  dataa <- as_tibble(country_data[[i]]) %>% 
+    mutate(new_cases = c(0, diff(new_cases)))
+  #perform the adf test
+  results <- ur.df(dataa$new_cases, type = "none", lags = 14)
+  ###### start building row to add
+  #get critical value
+  test_stat <- as.list(results@teststat)[[1]]
+  #p values
+  p1 <- as.list(results@cval)[[1]]
+  p2 <- as.list(results@cval)[[2]]
+  p3 <- as.list(results@cval)[[3]]
+  # add row to adf summary
+  ADF_summary2 <- ADF_summary2 %>% 
+    bind_rows(tibble(country = names(country_data)[i], test_stat = test_stat, p1 = p1, p5 = p2, p10 = p3))
+}
+
+# get rid of nonsense first row
+ADF_summary2 %>% 
+  filter(p1<0)
+
+
+# ADF test number 2 worked! Now need to save out all the country datasets back out with these first differences
+for (i in seq_along(country_data)) {
+  
+  df <- as_tibble(country_data[[i]]) %>% 
+    mutate(new_cases = c(0, diff(new_cases)))
+  
+  write_csv(df, file = paste0("country_data/univariate/", names(country_data)[i], "_uni.csv"))
+}
+
+read.csv("country_data/univariate/Italy_uni.csv")
+
+
+

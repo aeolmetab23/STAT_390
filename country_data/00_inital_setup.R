@@ -3,6 +3,9 @@ library(skimr)
 
 load("data/covid_clean.rda")
 
+# don't have this rda on my local so added csv read - Alex
+covid_clean <- read_csv("covid_cleaner.csv")
+
 na_counts <- covid_clean %>%
   group_by(continent, location) %>%
   summarize(na_count = mean(!is.na(across(where(is.numeric))))) %>% 
