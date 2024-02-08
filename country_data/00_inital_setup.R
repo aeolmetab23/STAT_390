@@ -29,8 +29,40 @@ for (i in our_countries) {
   write_csv(df, file = paste0("country_data/univariate/", i, "_uni.csv"))
 }
 
-covid_clean %>% 
-  filter(
-    location == "Zimbabwe"
+library(tseries)
+aus <- read_csv("country_data/univariate/Australia_uni.csv")
+View(aus)
+
+aus_log <- aus %>% 
+  mutate(
+    log_cases = log(new_cases + 1),
+    case_diff = new_cases - lag(new_cases,default = 1)
+  )
+library(zoo)
+adf.test(aus_log$case_diff)
+acf(coredata(aus_log$case_diff), plot = T)
+
+covid_cleaner <- read_csv("covid_cleaner.csv")
+
+covid_cln <- covid_cleaner %>% 
+  mutate(month = lubridate::month(date),
+         week = lubridate::week(date)) %>% 
+  mutate(
+    month = factor(month)
   ) %>% 
-  view()
+  ungroup() %>% 
+  arrange(location, date)
+
+covid_cln %>% 
+  ggplot(aes(month, new_cases)) +
+  geom_col(fill = "indianred") +
+  theme_minimal() +
+  labs(
+    y = "New Cases",
+    x = "Month",
+    title = "New Cases by Month",
+    caption = "Data: covid_cleaner"
+  ) +
+  theme(
+        panel.grid.major.x = element_blank()
+  )
