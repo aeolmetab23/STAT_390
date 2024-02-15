@@ -58,10 +58,7 @@ for (i in our_countries) {
   country_data[[i]] <- read.csv(file = paste0("country_data/univariate/", i, "_uni.csv"))
 }
 
-italy <- as_tibble(country_data[["Italy"]])
-
-covid <- covid_clean %>% 
-  filter(iso_code == "ITA")
+as_tibble(country_data[["Italy"]])
 
 #setting up ADF summary tibble
 ADF_summary <- tibble(country = "", test_stat = 0, p1 = 0, p5 = 0, p10 = 0)
@@ -130,18 +127,6 @@ for (i in seq_along(country_data)) {
 }
 
 read.csv("country_data/univariate/Italy_uni.csv")
-
-
-#### Code for saving out all the country datasets without first differences
-for (i in seq_along(country_data)) {
-  
-  df <- as_tibble(country_data[[i]]) %>% 
-    mutate(new_cases = diffinv(tail(new_cases, -1)))
-  
-  write_csv(df, file = paste0("country_data/univariate/", names(country_data)[i], "_uni.csv"))
-}
-
-
 
 
 

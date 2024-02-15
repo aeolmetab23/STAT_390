@@ -1,0 +1,96 @@
+library(tidyverse)
+library(tidymodels)
+library(lubridate)
+library(tibbletime)
+
+data <- read.csv("data/covid_clean.csv")
+
+data %>% 
+  group_by(iso_code) %>% 
+  select(iso_code) %>% 
+  summarize(n_distinct(iso_code)) %>% 
+  print(n=255)
+
+US_data <- data %>% 
+  filter(iso_code == "USA")
+
+# country's with the highest number of observations
+data %>% 
+  count(location) %>% 
+  filter(location == "China") %>% 
+  arrange(-n)
+
+
+##################### feature engineering
+# date as date class
+fdata <- data %>% 
+  mutate(datee = lubridate::ymd(date)) %>%
+  select(-date) %>% 
+  mutate(date = datee) %>% 
+  select(-datee) %>% 
+  relocate(date) %>% 
+  # remove excess mortality
+  select(-c(excess_mortality_cumulative_absolute, excess_mortality_cumulative))
+
+# class check
+class(fdata$date)
+
+#na's per column
+nas <- tibble(variable = names(colMeans(is.na(fdata))), pct_missing = colMeans(is.na(fdata)))
+
+nas %>% 
+  arrange(-pct_missing) %>% 
+  print(n=70)
+
+# number of observations for CAN
+fdata %>% 
+  filter(iso_code == "CAN") %>% 
+  select(date, new_cases)
+
+# missing icu by country
+fdata %>% 
+  group_by(iso_code) %>% 
+  summarize(na_pct = mean(is.na(icu_patients))) %>% 
+  arrange(na_pct) %>% 
+  print(n=40)
+
+# missing hosp_patients
+fdata %>% 
+  group_by(iso_code) %>% 
+  summarize(na_pct = mean(is.na(hosp_patients))) %>% 
+  arrange(na_pct) %>% 
+  print(n=40)
+
+
+############################# lags
+# creating lag variables, rolling windows, and date time features
+# first need rolling functions
+mean_roll_6 <- rollify(mean, window = 6)
+mean_roll_12 <- rollify(mean, window = 12)
+
+gdata <- fdata %>% 
+  group_by(iso_code) %>% 
+  #lags
+  mutate(new_cases_1week_lag = lag(new_cases, n=1, default=NA),
+         new_cases_2week_lag = lag(new_cases, n=2, default=NA),
+         new_deaths_1week_lag = lag(new_deaths, n=1, default=NA),
+         new_deaths_2week_lag = lag(new_deaths, n=2, default=NA)) %>% 
+  relocate(new_cases_1week_lag,.after = new_cases) %>% 
+  relocate(new_cases_2week_lag,.after = new_cases_1week_lag) %>% 
+  relocate(new_deaths_1week_lag,.after = new_deaths) %>% 
+  relocate(new_deaths_2week_lag,.after = new_deaths_1week_lag) %>% 
+  # rolling statistics
+  mutate(new_cases_6week_roll = mean_roll_6(new_cases),
+         new_cases_12week_roll = mean_roll_12(new_cases),
+         new_deaths_6week_roll = mean_roll_6(new_deaths),
+         new_deaths_12week_roll = mean_roll_12(new_deaths)) %>% 
+  relocate(new_cases_6week_roll,.after = new_cases_2week_lag) %>% 
+  relocate(new_cases_12week_roll,.after = new_cases_6week_roll) %>% 
+  relocate(new_deaths_6week_roll,.after = new_deaths_2week_lag) %>% 
+  relocate(new_deaths_12week_roll,.after = new_deaths_6week_roll) %>% 
+  # date time features
+  mutate(month = lubridate::month(date),
+         week = lubridate::week(date))
+
+write_csv(gdata, file = "data/covid_cleaner.csv")
+
