@@ -126,7 +126,7 @@ for (i in seq_along(country_data)) {
   df <- as_tibble(country_data[[i]]) %>% 
     mutate(new_cases = c(0, diff(new_cases)))
   
-  write_csv(df, file = paste0("country_data/univariate/", names(country_data)[i], "_uni.csv"))
+  write_csv(df, file = paste0("country_data/univariate_firstdiffs/", names(country_data)[i], "_uni.csv"))
 }
 
 read.csv("country_data/univariate/Italy_uni.csv")
