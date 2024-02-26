@@ -22,3 +22,15 @@ data <- data %>%
 
 # writing new csv
 write_csv(data, "data/covid_cleaner.csv")
+
+covid_cleaner <- read.csv("data/covid_cleaner.csv") 
+
+
+# trial and error for good univariate countries:
+covid_cleaner %>% 
+  mutate(date = lubridate::ymd(date)) %>% 
+  select(date, iso_code, continent, location, new_cases) %>% 
+  filter(location == "Peru", date >= "2023-10-01")
+# our countries should be: c("Italy", "Mexico", "India", "Australia", "Argentina", 
+# "United Kingdom", "Malaysia", "Morocco", "Sweden", "Peru")
+
