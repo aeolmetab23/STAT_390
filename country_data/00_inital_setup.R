@@ -14,8 +14,8 @@ na_counts <- covid_clean %>%
 
 # Italy, Canada, India, Germany, Australia, Japan, Ireland, Denmark, Brazil, Sudan
 
-our_countries <- c("Italy", "Canada", "Mexico", "India", "Germany", "Australia",
-                   "Japan", "Ireland", "Denmark", "Brazil", "Egypt")
+our_countries <- c("Italy", "Mexico", "India", "Australia", "Argentina", 
+                   "United Kingdom", "Malaysia", "Morocco", "Sweden", "Peru")
 
 for (i in our_countries) {
   df <- covid_clean %>% 
