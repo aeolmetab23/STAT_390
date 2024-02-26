@@ -10,7 +10,6 @@ library(MLmetrics)
 ######################### DATA LOADING
 our_countries <- c("Italy", "Mexico", "India", "Germany", "Australia",
                    "Japan", "Ireland", "Denmark", "Brazil", "Egypt")
-
 country_data <- list()
 for (i in our_countries) {
   country_data[[i]] <- read.csv(file = paste0("data/my_country_data/", i, "_uni.csv"))
@@ -19,12 +18,6 @@ for (i in our_countries) {
 italy <- as_tsibble(
   as_tibble(country_data[["Italy"]]) %>% 
   mutate(date = lubridate::ymd(date)),
-  index = date
-)
-
-mexico <- as_tsibble(
-  as_tibble(country_data[["Germany"]]) %>% 
-    mutate(date = lubridate::ymd(date)),
   index = date
 )
  
@@ -59,13 +52,13 @@ fit %>% forecast() %>% autoplot()
 ################### grid search
 ps <- seq(0:4)
 qs <- seq(0:4)
-results <- tibble(p = c(), q = c(), aic = c())
+italy_results <- tibble(p = c(), q = c(), aic = c())
 
 for (p in ps) {
   for (q in qs) {
     fit <- Arima(italy.ts_train, order = c(p,1,q))
     aic <- fit$aic
-    results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
+    italy_results <- bind_rows(italy_results, tibble(p = p, q = q, aic = aic)) %>% 
       arrange(aic)
   }
 }

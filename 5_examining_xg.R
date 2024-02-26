@@ -14,9 +14,10 @@ ggplot(df_simple, aes(x = date)) +
   geom_line(aes(y = Preds), color = "red")
 
 # for a given country
-ggplot(df_simple %>% filter(location == "Sweden"), aes(x = date)) +
+ggplot(df_simple %>% filter(location == "Mexico", date > "2022-11-06"), aes(x = date)) +
   geom_line(aes(y = new_cases), color = "blue") +
-  geom_line(aes(y = Preds), color = "red")
+  geom_line(aes(y = Preds), color = "red") +
+  theme_minimal()
 
 
 df_stats <- df_simple %>% 

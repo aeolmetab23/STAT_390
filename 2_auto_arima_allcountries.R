@@ -43,7 +43,7 @@ for (i in our_countries) {
   country.ts_train <- as.ts(country_train$new_cases)
   
   # fit model
-  autoA_fit <- auto.arima(italy.ts_train)
+  autoA_fit <- auto.arima(country.ts_train)
   
   # extract p,d,q values
   p <- autoA_fit$arma[1]
