@@ -39,15 +39,15 @@ swd <- swd %>%
 # Converting to Time Series Tibble
 swd_ts <- as_tsibble(swd, index = date)
 
-# splitting the data - 70% split
+# Splits
 splits <- initial_time_split(swd_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+# Use gg_tsdisplay 
+gg_tsdisplay(train, y = new_cases, plot_type = "partial")
 
-# removing dates - making data univariate
+# Remove Date
 train_ts <- as.ts(train$new_cases)
 
 swd_fit <- Arima(train_ts, order=c(3,1,2))
@@ -58,18 +58,15 @@ checkresiduals(swd_fit)
 swd_fit$aic # 3554.075
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+# Create result tibble
+results <- tibble(p = c(), q = c(), aic = c())
 
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
     fit <- Arima(train_ts, order = c(p,1,q))
     aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
@@ -80,8 +77,13 @@ results # Best Result: p = 2, q = 3
 
 # Fit model with p = 2 and q = 3
 swd_final_fit <- Arima(train_ts, order=c(2, 1, 3))
-swd_final_fit %>% forecast() %>% autoplot()
+
+swd_final_fit %>%
+  forecast() %>%
+  autoplot()
+
 swd_forecast <- forecast(swd_final_fit, 42)
+
 autoplot(swd_forecast)
 
 preds <- predict(swd_final_fit, n.ahead = 42)$pred
@@ -101,8 +103,6 @@ ggplot(swd_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 sweden_metrics <- swd_preds %>% 

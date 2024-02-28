@@ -44,13 +44,13 @@ mex <- mex %>%
 # Converting to Time Series Tibble
 mex_ts <- as_tsibble(mex, index = date)
 
-# splitting the data - 70% split
+# Splits
 splits <- initial_time_split(mex_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+# Use gg_tsdisplay 
+gg_tsdisplay(train, y = new_cases, plot_type = "partial")
 
 # removing dates - making data univariate
 train_ts <- as.ts(train$new_cases)
@@ -63,18 +63,15 @@ checkresiduals(mex_fit)
 mex_fit$aic # 3745.909
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+# Create result tibble
+results <- tibble(p = c(), q = c(), aic = c())
 
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
     fit <- Arima(train_ts, order = c(p,1,q))
     aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
@@ -85,8 +82,13 @@ results # Best Result: p = 1, q = 4
 
 # Fit model with p = 1 and q = 4
 mex_final_fit <- Arima(train_ts, order=c(1, 1, 4))
-mex_final_fit %>% forecast() %>% autoplot()
+
+mex_final_fit %>%
+  forecast() %>%
+  autoplot()
+
 mex_forecast <- forecast(mex_final_fit, 42)
+
 autoplot(mex_forecast)
 
 preds <- predict(mex_final_fit, n.ahead = 42)$pred

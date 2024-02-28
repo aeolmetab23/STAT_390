@@ -39,13 +39,13 @@ morocco <- morocco %>%
 # Converting to Time Series Tibble
 morocco_ts <- as_tsibble(morocco, index = date)
 
-# splitting the data - 70% split
+# Splits
 splits <- initial_time_split(morocco_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+# Use gg_tsdisplay 
+gg_tsdisplay(train, y = new_cases, plot_type = "partial")
 
 # Remove Date
 train_ts <- as.ts(train$new_cases)
@@ -57,18 +57,15 @@ checkresiduals(morocco_fit) # Q* = 4.2145, df = 5, p-value = 0.519
 morocco_fit$aic # 3176.355
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+# Create result tibble
+results <- tibble(p = c(), q = c(), aic = c())
 
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
     fit <- Arima(train_ts, order = c(p,1,q))
     aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
@@ -79,8 +76,13 @@ results # Best Result: p = 2, q = 3
 
 # Fit model with p = 2 and q = 3
 morocco_final_fit <- Arima(train_ts, order=c(2, 1, 3))
-morocco_final_fit %>% forecast() %>% autoplot()
+
+morocco_final_fit %>%
+  forecast() %>%
+  autoplot()
+
 morocco_forecast <- forecast(morocco_final_fit, 42)
+
 autoplot(morocco_forecast)
 
 preds <- predict(morocco_final_fit, n.ahead = 42)$pred

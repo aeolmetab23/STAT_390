@@ -49,7 +49,7 @@ splits <- initial_time_split(arg_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Plot Lags
+# Use gg_tsdisplay 
 gg_tsdisplay(train, y = new_cases, plot_type = "partial")
 
 # Make into a TS

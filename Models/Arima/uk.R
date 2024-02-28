@@ -36,18 +36,18 @@ uk <- uk %>%
   ) %>% 
   arrange(date)
 
-# Converting to Time Series Tibble
+# Tsibble
 uk_ts <- as_tsibble(uk, index = date)
 
-# splitting the data - 70% split
+# Splits
 splits <- initial_time_split(uk_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+# Use gg_tsdisplay 
+gg_tsdisplay(train, y = new_cases, plot_type = "partial")
 
-# removing dates - making data univariate
+# Remove Dates
 train_ts <- as.ts(train$new_cases)
 
 uk_fit <- Arima(train_ts, order=c(2,1,3))
@@ -57,31 +57,32 @@ checkresiduals(uk_fit) # Q* = 7.0642, df = 5, p-value = 0.2159
 uk_fit$aic # 4191.372
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+# Create result tibble
+results <- tibble(p = c(), q = c(), aic = c())
 
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
-      fit <- Arima(train_ts, order = c(p, 1, q))
-      aic <- fit$aic
-      results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
-        arrange(aic)
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
+    fit <- Arima(train_ts, order = c(p,1,q))
+    aic <- fit$aic
+    results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
+      arrange(aic)
   }
 }
-
 results # Best Result: p = 1, q = 2, aic = 4188
 
 # Fit model with p = 1 and q = 2
 uk_final_fit <- Arima(train_ts, order=c(1, 1, 2))
-uk_final_fit %>% forecast() %>% autoplot()
+
+uk_final_fit %>%
+  forecast() %>%
+  autoplot()
+
 uk_forecast <- forecast(uk_final_fit, 42)
+
 autoplot(uk_forecast)
 
 preds <- predict(uk_final_fit, n.ahead = 42)$pred
@@ -101,8 +102,6 @@ ggplot(uk_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 uk_metrics <- uk_preds %>% 

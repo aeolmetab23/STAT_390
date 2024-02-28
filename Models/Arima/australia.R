@@ -49,8 +49,8 @@ splits <- initial_time_split(aus_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+# Use gg_tsdisplay 
+gg_tsdisplay(train, y = new_cases, plot_type = "partial")
 
 # removing dates - making data univariate
 train_ts <- as.ts(train$new_cases)
