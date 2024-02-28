@@ -22,6 +22,7 @@ registerDoMC(cores = 8)
 load("Models/XGBoost/results/model_1.rda")
 load("Models/XGBoost/results/model_2.rda")
 load("Models/XGBoost/results/model_3.rda")
+load("Models/XGBoost/results/model_4.rda")
 load("Models/XGBoost/results/splits.rda")
 
 train <- training(splits)
@@ -31,7 +32,9 @@ test <- testing(splits)
 model_set <- as_workflow_set(
   "Model 1" = covid_tune_1,
   "Model 2" = covid_tune_2,
-  "Model 3" = covid_tune_3)
+  "Model 3" = covid_tune_3,
+  "Model 4" = covid_tune_4
+  )
 
 ## RMSE
 model_set %>% 
@@ -49,6 +52,14 @@ model_set %>%
   ylim(c(0, 0.5)) +
   theme(legend.position = "none")
 
+## MAE
+model_set %>% 
+  autoplot(metric = "mae", select_best = TRUE) +
+  theme_minimal() +
+  geom_text(aes(y = mean - 200, label = wflow_id), angle = 90, hjust = 1) +
+  ylim(c(1500, 2500)) +
+  theme(legend.position = "none")
+
 
 model_results <- model_set %>% 
   group_by(wflow_id) %>% 
@@ -60,10 +71,12 @@ model_results <- model_set %>%
 # Computation time
 model_times <- bind_rows(bt_tictoc_1,
                          bt_tictoc_2,
-                         bt_tictoc_3) %>% 
+                         bt_tictoc_3,
+                         bt_tictoc_4) %>% 
   mutate(wflow_id = c("Model 1",
                       "Model 2",
-                      "Model 3"))
+                      "Model 3",
+                      "Model 4"))
 
 result_table <- merge(model_results, model_times) %>% 
   select(model, wflow_id, mean, runtime) %>% 
