@@ -18,30 +18,44 @@ set.seed(6432)
 parallel::detectCores()
 registerDoMC(cores = 8)
 
+# Load data
+covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
+
+# Filter Dates
+covid_clean <- covid %>% 
+  mutate(date = lubridate::ymd(date),
+         new_cases_log = log(new_cases + 1)) %>% 
+  filter(date < "2024-01-01", date >= "2020-03-08")
+
+# Train and Test
+train <- covid_clean %>% 
+  filter(date <= "2023-03-26")
+
+test <- covid_clean %>% 
+  filter(date > "2023-03-26")
+
 # Write out results
 load("Models/XGBoost/results/model_1.rda")
 load("Models/XGBoost/results/model_2.rda")
 load("Models/XGBoost/results/model_3.rda")
 load("Models/XGBoost/results/model_4.rda")
-load("Models/XGBoost/results/splits.rda")
-
-train <- training(splits)
-test <- testing(splits)
+load("Models/XGBoost/results/model_5.rda")
 
 # Analysis ----
 model_set <- as_workflow_set(
   "Model 1" = covid_tune_1,
   "Model 2" = covid_tune_2,
   "Model 3" = covid_tune_3,
-  "Model 4" = covid_tune_4
+  "Model 4" = covid_tune_4,
+  "Model 5" = covid_tune_5
   )
-
+  
 ## RMSE
 model_set %>% 
   autoplot(metric = "rmse", select_best = TRUE) +
   theme_minimal() +
   geom_text(aes(y = mean - 2500, label = wflow_id), angle = 90, hjust = 1) +
-  ylim(c(10000, 20000)) +
+  # ylim(c(10000, 20000)) +
   theme(legend.position = "none")
 
 ## MASE
@@ -57,7 +71,7 @@ model_set %>%
   autoplot(metric = "mae", select_best = TRUE) +
   theme_minimal() +
   geom_text(aes(y = mean - 200, label = wflow_id), angle = 90, hjust = 1) +
-  ylim(c(1500, 2500)) +
+  # ylim(c(1500, 2500)) +
   theme(legend.position = "none")
 
 
@@ -72,48 +86,63 @@ model_results <- model_set %>%
 model_times <- bind_rows(bt_tictoc_1,
                          bt_tictoc_2,
                          bt_tictoc_3,
-                         bt_tictoc_4) %>% 
+                         bt_tictoc_4,
+                         bt_tictoc_5) %>% 
   mutate(wflow_id = c("Model 1",
                       "Model 2",
                       "Model 3",
-                      "Model 4"))
+                      "Model 4",
+                      "Model 5"))
 
 result_table <- merge(model_results, model_times) %>% 
   select(model, wflow_id, mean, runtime) %>% 
   rename(rmse = mean) %>% 
   arrange(rmse)
 
-save(result_table_1, file = "model_info/result_table_1.rda")
-
 result_table
 
+save(result_table, file = "Models/XGBoost/results/result_table.rda")
 
 
-# Model 1 ----
 
-# Model 3 ----
-## Winning model fit
-autoplot(covid_tune_3, metric = "rmse")
-show_best(covid_tune_3, metric = "rmse")[1,]
+# Model 5 ----
+autoplot(covid_tune_5, metric = "rmse")
+show_best(covid_tune_5, metric = "rmse")[1,]
 
-covid_wflow <- bt_workflow_3 %>%
-  finalize_workflow(select_best(covid_tune_3, metric = "rmse"))
+covid_wflow <- bt_workflow_5 %>%
+  finalize_workflow(select_best(covid_tune_5, metric = "rmse"))
 
 covid_fit <- fit(covid_wflow, train)
 
 ## Tibble of predicted and actual values
 covid_pred <- test %>%
+  select(date, location, new_cases, new_cases_log) %>% 
   bind_cols(predict(covid_fit, test)) %>%
-  select(new_cases, .pred)
+  arrange(location, date)
+
+colors <- c("Predicted" = "navyblue", "Actual" = "indianred")
+
+covid_pred %>% 
+  filter(location == "Sweden") %>% 
+  ggplot() +
+  geom_line(mapping = aes(date, .pred, color = "Predicted"), linetype = 2) +
+  geom_line(mapping = aes(date, new_cases_log, color = "Actual")) +
+  theme_minimal() +
+  labs(x = "Date",
+       y = "New Cases",
+       color = "",
+       title = "Sweden Predictions") +
+  scale_color_manual(values = colors)
 
 ## Metric Set
 covid_metrics <- metric_set(rmse, mase, mae)
 
 # Apply Metrics
-covid_metrics(covid_pred, truth = new_cases, estimate = .pred)
+covid_metrics(covid_pred, truth = new_cases_log, estimate = .pred)
+
 # # A tibble: 3 × 3
 # .metric .estimator .estimate
 # <chr>   <chr>          <dbl>
-# 1 rmse    standard    76613.  
-# 2 mase    standard        1.18
-# 3 mae     standard     7124. 
+#   1 rmse    standard       1.06 
+# 2 mase    standard       1.00 
+# 3 mae     standard       0.543

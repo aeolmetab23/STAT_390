@@ -37,17 +37,18 @@ test <- covid_clean %>%
 folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
 
 ## Recipe
-recipe_3 <- recipe(new_cases ~ ., data = train) %>%
+recipe_4 <- recipe(new_cases ~ ., data = train) %>%
   update_role(date, tests_units, iso_code, continent, location, new_role = "id") %>% 
   step_impute_knn(neighbors = 5) %>% 
   step_corr(all_numeric_predictors()) %>% 
   step_normalize(all_numeric_predictors()) %>% 
-  step_nzv(all_predictors())
+  step_nzv(all_predictors()) %>% 
+  step_interact(~all_numeric_predictors())
 
-recipe_3 %>%
-  prep() %>%
-  bake(new_data = NULL) %>%
-  View()
+# recipe_4 %>%
+#   prep() %>%
+#   bake(new_data = NULL) %>%
+#   View()
 
 # define model engine and workflow
 bt_model <-
@@ -67,17 +68,17 @@ bt_params <- hardhat::extract_parameter_set_dials(bt_model) %>%
 # define tuning grid
 bt_grid <- grid_regular(bt_params, levels = 5)
 
-bt_workflow_3 <- workflow() %>% 
+bt_workflow_4 <- workflow() %>% 
   add_model(bt_model) %>% 
-  add_recipe(recipe_3)
+  add_recipe(recipe_4)
 
 # Tune grid 
 # clear and start timer
 tic.clearlog()
 tic("Boosted Tree")
 
-covid_tune_3 <- tune_grid(
-  bt_workflow_3,
+covid_tune_4 <- tune_grid(
+  bt_workflow_4,
   resamples = folds,
   grid = bt_grid,
   control = control_grid(save_pred = TRUE,
@@ -90,12 +91,12 @@ toc(log = TRUE)
 
 time_log <- tic.log(format = FALSE)
 
-bt_tictoc_3 <- tibble(
+bt_tictoc_4 <- tibble(
   model = time_log[[1]]$msg,
   runtime = time_log[[1]]$toc - time_log[[1]]$tic)
 
 
 # Write out results
-save(covid_tune_3, bt_workflow_3, bt_tictoc_3, file = "Models/XGBoost/results/model_3.rda")
+save(covid_tune_4, bt_workflow_4, bt_tictoc_4, file = "Models/XGBoost/results/model_4.rda")
 
 

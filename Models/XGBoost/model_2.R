@@ -26,10 +26,12 @@ covid_clean <- covid %>%
   mutate(date = lubridate::ymd(date)) %>% 
   filter(date < "2024-01-01", date >= "2020-03-08")
 
-# Split Data
-splits <- initial_time_split(covid_clean, prop = 0.8)
-train <- training(splits)
-test <- testing(splits)
+# Train and Test
+train <- covid_clean %>% 
+  filter(date <= "2023-03-26")
+
+test <- covid_clean %>% 
+  filter(date > "2023-03-26")
 
 # Folding(Resampling)
 folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)

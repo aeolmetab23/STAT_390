@@ -1,6 +1,8 @@
 
-# XGBoost Setup -----------------------------------------------------------
+# Model 5 -----------------------------------------------------------
+## Log new_cases and all predictors
 
+# Load Packages
 library(tidyverse)
 library(tidymodels)
 library(xgboost)
@@ -23,7 +25,8 @@ covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
 
 # Filter Dates
 covid_clean <- covid %>% 
-  mutate(date = lubridate::ymd(date)) %>% 
+  mutate(date = lubridate::ymd(date),
+         new_cases_log = log(new_cases + 1)) %>% 
   filter(date < "2024-01-01", date >= "2020-03-08")
 
 # Train and Test
@@ -34,17 +37,18 @@ test <- covid_clean %>%
   filter(date > "2023-03-26")
 
 # Folding(Resampling)
-folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
+folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases_log)
 
 ## Recipe
-recipe_3 <- recipe(new_cases ~ ., data = train) %>%
-  update_role(date, tests_units, iso_code, continent, location, new_role = "id") %>% 
+recipe_5 <- recipe(new_cases_log ~ ., data = train) %>%
+  update_role(date, tests_units, iso_code, continent, location, new_cases, new_role = "id") %>% 
+  step_log(all_numeric_predictors(), signed = TRUE) %>%
   step_impute_knn(neighbors = 5) %>% 
-  step_corr(all_numeric_predictors()) %>% 
+  step_nzv(all_predictors()) %>% 
   step_normalize(all_numeric_predictors()) %>% 
-  step_nzv(all_predictors())
+  step_interact(~all_numeric_predictors())
 
-recipe_3 %>%
+recipe_5 %>%
   prep() %>%
   bake(new_data = NULL) %>%
   View()
@@ -67,17 +71,17 @@ bt_params <- hardhat::extract_parameter_set_dials(bt_model) %>%
 # define tuning grid
 bt_grid <- grid_regular(bt_params, levels = 5)
 
-bt_workflow_3 <- workflow() %>% 
+bt_workflow_5 <- workflow() %>% 
   add_model(bt_model) %>% 
-  add_recipe(recipe_3)
+  add_recipe(recipe_5)
 
 # Tune grid 
 # clear and start timer
 tic.clearlog()
 tic("Boosted Tree")
 
-covid_tune_3 <- tune_grid(
-  bt_workflow_3,
+covid_tune_5 <- tune_grid(
+  bt_workflow_5,
   resamples = folds,
   grid = bt_grid,
   control = control_grid(save_pred = TRUE,
@@ -90,12 +94,12 @@ toc(log = TRUE)
 
 time_log <- tic.log(format = FALSE)
 
-bt_tictoc_3 <- tibble(
+bt_tictoc_5 <- tibble(
   model = time_log[[1]]$msg,
   runtime = time_log[[1]]$toc - time_log[[1]]$tic)
 
 
 # Write out results
-save(covid_tune_3, bt_workflow_3, bt_tictoc_3, file = "Models/XGBoost/results/model_3.rda")
+save(covid_tune_5, bt_workflow_5, bt_tictoc_5, file = "Models/XGBoost/results/model_5.rda")
 
 
