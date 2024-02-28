@@ -4,8 +4,8 @@ library(ggplot2)
 library(rstan)
 
 ######################### DATA LOADING
-our_countries <- c("Italy", "Mexico", "India", "Germany", "Australia",
-                   "Japan", "Ireland", "Denmark", "Brazil", "Egypt")
+our_countries <- c("Italy", "Mexico", "India", "Australia", "Argentina", 
+                   "United Kingdom", "Malaysia", "Morocco", "Sweden", "Peru")
 
 country_data <- list()
 for (i in our_countries) {
@@ -49,17 +49,5 @@ ggplot(italy_pro_preds) +
 # Mean Absolute Percent Error and Mean Absolute Scaled Error
 MAPE(y_pred = italy_pro_preds$new_cases, y_true = italy_pro_preds$preds)
 mase_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
-
-
-
-
-
-
-
-
-
-
-
-
-
+mae_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
 

@@ -14,7 +14,7 @@ ggplot(df_simple, aes(x = date)) +
   geom_line(aes(y = Preds), color = "red")
 
 # for a given country
-ggplot(df_simple %>% filter(location == "Mexico", date > "2022-11-06"), aes(x = date)) +
+ggplot(df_simple %>% filter(location == "Sweden", date > "2022-11-06"), aes(x = date)) +
   geom_line(aes(y = new_cases), color = "blue") +
   geom_line(aes(y = Preds), color = "red") +
   theme_minimal()
@@ -28,5 +28,7 @@ df_stats <- df_simple %>%
 MAPE(y_pred = df_stats$new_cases, y_true = df_stats$Preds)
 mase_vec(truth = df_stats$new_cases, estimate = df_stats$Preds)
 
-
-
+rmse_vec(truth = df_stats$new_cases, estimate = df_stats$Preds)
+mase_vec(truth = df_stats$new_cases, estimate = df_stats$Preds)
+round(MAPE(y_pred = df_stats$new_cases, y_true = df_stats$Preds), 6)
+mae_vec(truth = df_stats$new_cases, estimate = df_stats$Preds)

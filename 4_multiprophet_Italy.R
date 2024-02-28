@@ -33,8 +33,8 @@ ggplot(italy_big) +
   geom_line(aes(x = date, y = new_cases)) +
   theme_minimal()
 
-# splitting the data - 70% split
-split_italy_big <- ts_split(ts.obj = italy_big, sample.out = 63)
+# splitting the data - 80% split
+split_italy_big <- ts_split(ts.obj = italy_big, sample.out = 42)
 
 italy_big_train <- split_italy_big$train
 italy_big_test <- split_italy_big$test
@@ -42,7 +42,6 @@ italy_big_test <- split_italy_big$test
 # rename columns to match prophet syntax
 italy_big_train <- italy_big_train %>% 
   rename(ds = date, y = new_cases)
-  
 
 # model
 mpfit_italy <- (prophet(
@@ -67,7 +66,7 @@ mpfit_italy = add_regressor(mpfit_italy,'excess_mortality', standardize = FALSE)
 mpfit_italy = fit.prophet(mpfit_italy, df = italy_big_train)
 
 # making future df
-future_italy <- make_future_dataframe(mpfit_italy, periods = 63, freq = "week")
+future_italy <- make_future_dataframe(mpfit_italy, periods = 42, freq = "week")
 
 # build out columns of values for extra regressors
 future_italy$new_deaths = head(italy_big$new_deaths ,nrow(future_italy))
@@ -95,15 +94,17 @@ prophet_plot_components(
 # preds of future specifically
 italy_mp_future_preds <- mp_forecast %>% 
   select(yhat) %>% 
-  tail(n = 63)
+  tail(n = 42)
 
 italy_mp_preds <- bind_cols(italy_big_test, italy_mp_future_preds) %>% 
-  rename(preds = yhat)
+  rename(preds = yhat) %>% 
+  mutate(preds = ifelse(preds < 0 , 0, preds))
 
 # test statistics
-MAPE(y_pred = italy_mp_preds$new_cases, y_true = italy_mp_preds$preds)
+rmse_vec(truth = italy_mp_preds$new_cases, estimate = italy_mp_preds$preds)
 mase_vec(truth = italy_mp_preds$new_cases, estimate = italy_mp_preds$preds)
-
+round(MAPE(y_pred = italy_mp_preds$new_cases, y_true = italy_mp_preds$preds), 6)
+mae_vec(truth = italy_mp_preds$new_cases, estimate = italy_mp_preds$preds)
 
 
 
@@ -135,14 +136,21 @@ mp_forecast2 <- predict(mpfit_italy2, future_italy)
 # preds of future specifically
 italy_mp_future_preds2 <- mp_forecast2 %>% 
   select(yhat) %>% 
-  tail(n = 63)
+  tail(n = 42)
+
+# plot
+dyplot.prophet(mpfit_italy, mp_forecast, uncertainty = TRUE)
 
 italy_mp_preds2 <- bind_cols(italy_big_test, italy_mp_future_preds2) %>% 
-  rename(preds = yhat)
+  rename(preds = yhat) %>% 
+  mutate(preds = ifelse(preds < 0 , 0, preds))
+
 
 # test statistics
-MAPE(y_pred = italy_mp_preds2$new_cases, y_true = italy_mp_preds2$preds)
-mase_vec(truth = italy_mp_preds2$new_cases, estimate = italy_mp_preds2$preds)
+rmse_vec(truth = italy_mp_preds$new_cases, estimate = italy_mp_preds$preds)
+mase_vec(truth = italy_mp_preds$new_cases, estimate = italy_mp_preds$preds)
+round(MAPE(y_pred = italy_mp_preds$new_cases, y_true = italy_mp_preds$preds), 6)
+mae_vec(truth = italy_mp_preds$new_cases, estimate = italy_mp_preds$preds)
 # performed significantly better with the flat growth rate parameter
 # MAPE and MASE better without additional regressors. MASE best with first 3 regressors, MAPE worst
 # components of model

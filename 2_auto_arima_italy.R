@@ -6,8 +6,8 @@ library(fpp3)
 
 
 ######################### DATA LOADING
-our_countries <- c("Italy", "Mexico", "India", "Germany", "Australia",
-                   "Japan", "Ireland", "Denmark", "Brazil", "Egypt")
+our_countries <- c("Italy", "Mexico", "India", "Australia", "Argentina", 
+                   "United Kingdom", "Malaysia", "Morocco", "Sweden", "Peru")
 
 country_data <- list()
 for (i in our_countries) {

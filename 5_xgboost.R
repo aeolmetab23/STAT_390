@@ -20,12 +20,12 @@ data <- read.csv("data/covid_cleaner.csv") %>%
 #   arrange(date) %>% 
 #   print(n = 20)
 
-# splitting the data - 70% split
-n_distinct(data$date) * .7 # this is 140, corresponds to 2022-11-06
+# splitting the data - 80% split
+n_distinct(data$date) * .8 # this is 160, corresponds to 2023-03-26
 train <- data %>% 
-  filter(date <= "2022-11-06")
+  filter(date <= "2023-03-26")
 test <- data %>% 
-  filter(date > "2022-11-06")
+  filter(date > "2023-03-26")
 
 ############### formatting training data and testing data as matrices
 outcome <- train$new_cases

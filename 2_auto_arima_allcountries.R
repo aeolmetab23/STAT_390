@@ -10,8 +10,8 @@ library(MLmetrics)
 
 
 ######################### DATA LOADING
-our_countries <- c("Italy", "Mexico", "India", "Germany", "Australia",
-                   "Japan", "Ireland", "Denmark", "Brazil", "Egypt")
+our_countries <- c("Italy", "Mexico", "India", "Australia", "Argentina", 
+                   "United Kingdom", "Malaysia", "Morocco", "Sweden", "Peru")
 
 country_data <- list()
 for (i in our_countries) {
@@ -19,7 +19,7 @@ for (i in our_countries) {
 }
 
 # set up results table
-auto_arima_results <- tibble(country = "", p = 0, d = 0, q = 0, mase = 0, mape = 0)
+auto_arima_results <- tibble(country = c(), p = c(), d = c(), q = c(), rmse = c(), mae = c(), mase = c(), mape = c())
 
 for (i in our_countries) {
   j <- as_tsibble(
@@ -35,7 +35,7 @@ for (i in our_countries) {
   # 
   
   # splitting
-  split <- ts_split(ts.obj = j, sample.out = 63)
+  split <- ts_split(ts.obj = j, sample.out = 42)
   country_train <- split$train
   country_test <- split$test
   
@@ -51,7 +51,7 @@ for (i in our_countries) {
   d <- autoA_fit$arma[6]
   
   # make predictions
-  autoA_preds <- predict(autoA_fit, n.ahead = 63)$pred
+  autoA_preds <- predict(autoA_fit, n.ahead = 42)$pred
   
   country_autoA_preds <- bind_cols(country_test, autoA_preds) %>% 
     rename("preds" = "...3")
@@ -59,10 +59,12 @@ for (i in our_countries) {
   # test statistics
   mape <- round(MAPE(y_pred = country_autoA_preds$new_cases, y_true = country_autoA_preds$preds), 4)
   mase <- round(mase_vec(truth = country_autoA_preds$new_cases, estimate = country_autoA_preds$preds), 4)
+  mae <- mae_vec(truth = country_autoA_preds$new_cases, estimate = country_autoA_preds$preds)
+  rmse <- rmse_vec(truth = country_autoA_preds$new_cases, estimate = country_autoA_preds$preds)
   
   # save out results
   auto_arima_results <- auto_arima_results %>% 
-    bind_rows(tibble(country = i, p = p, d = d, q =q, mase = mase, mape = mape))
+    bind_rows(tibble(country = i, p = p, d = d, q = q, rmse = rmse, mae = mae, mase = mase, mape = mape))
   
 }
 
