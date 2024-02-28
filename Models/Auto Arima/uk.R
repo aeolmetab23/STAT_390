@@ -1,4 +1,4 @@
-# Arima: United Kingdom -------------------------------------------------------
+# Auto Arima: UK -------------------------------------------------------
 
 # Load package(s)
 library(tidymodels)
@@ -7,6 +7,7 @@ library(patchwork)
 library(readr)
 library(stacks)
 library(caret)
+library(skimr)
 library(ggfortify)
 library(doMC)
 library(modeltime)
@@ -27,92 +28,51 @@ parallel::detectCores()
 registerDoMC(cores = 8)
 
 # Load Data
-uk <- read_csv(here::here("Models/model_data/uni_v2/United Kingdom_uni.csv"))
+UK <- read_csv(here::here("Models/model_data/uni_v2/United Kingdom_uni.csv"))
 
 # Mutate Columns
-uk <- uk %>% 
-  mutate(
-    date = ymd(date)
-  ) %>% 
+UK <- UK %>% 
+  mutate(date = ymd(date)) %>% 
   arrange(date)
 
-# Converting to Time Series Tibble
-uk_ts <- as_tsibble(uk, index = date)
+# Convert to Time Series Tibble
+UK_ts <- as_tsibble(UK, index = date)
 
-# splitting the data - 70% split
-splits <- initial_time_split(uk_ts, prop = 0.8)
+# Splits
+splits <- initial_time_split(UK_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
-
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
 
 # removing dates - making data univariate
 train_ts <- as.ts(train$new_cases)
 
-uk_fit <- Arima(train_ts, order=c(2,1,3))
+# Run Model
+UK_fit <- auto.arima(train_ts)
 
-checkresiduals(uk_fit) # Q* = 7.0642, df = 5, p-value = 0.2159
+UK_fit # order = c(1, 0, 3)
 
-uk_fit$aic # 4191.372
+preds <- predict(UK_fit, n.ahead = 42)$pred
 
-# Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+UK_preds <- bind_cols(test, preds) %>% 
+  rename("preds" = "...3")
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
-
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
-      fit <- Arima(train_ts, order = c(p, 1, q))
-      aic <- fit$aic
-      results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
-        arrange(aic)
-  }
-}
-
-results # Best Result: p = 1, q = 2, aic = 4188
-
-# Fit model with p = 1 and q = 2
-uk_final_fit <- Arima(train_ts, order=c(1, 1, 2))
-uk_final_fit %>% forecast() %>% autoplot()
-uk_forecast <- forecast(uk_final_fit, 42)
-autoplot(uk_forecast)
-
-preds <- predict(uk_final_fit, n.ahead = 42)$pred
-
-uk_preds <- bind_cols(test, preds) %>% 
-  rename(preds = "...3")
-
-ggplot(uk_preds) +
+ggplot(UK_preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+  geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
   theme_minimal() +
   labs(
     x = "Date",
     y = "New Cases",
-    title = "United Kingdom Arima",
+    title = "UK Auto Arima",
     subtitle = "Predicited vs. Actual New Cases"
   )
 
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-uk_metrics <- uk_preds %>% 
+UK_metrics <- UK_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-uk_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard    107214. 
-# 2 mase    standard        54.9
-# 3 mae     standard    103461. 
+UK_metrics
 
-save(uk_metrics, uk_preds, file = "Models/Auto Arima/results/UK_metrics.rda")
-
+save(UK_metrics, UK_preds, file = "Models/Auto Arima/results/UK_metrics.rda")

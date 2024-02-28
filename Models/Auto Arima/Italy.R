@@ -1,4 +1,4 @@
-# Arima: Italy -------------------------------------------------------
+# Auto Arima: Italy -------------------------------------------------------
 
 # Load package(s)
 library(tidymodels)
@@ -7,6 +7,7 @@ library(patchwork)
 library(readr)
 library(stacks)
 library(caret)
+library(skimr)
 library(ggfortify)
 library(doMC)
 library(modeltime)
@@ -27,90 +28,51 @@ parallel::detectCores()
 registerDoMC(cores = 8)
 
 # Load Data
-ita <- read_csv(here::here("Models/model_data/uni_v2/Italy_uni.csv"))
+Italy <- read_csv(here::here("Models/model_data/uni_v2/Italy_uni.csv"))
 
 # Mutate Columns
-ita <- ita %>% 
-  mutate(
-    date = ymd(date)
-  ) %>% 
+Italy <- Italy %>% 
+  mutate(date = ymd(date)) %>% 
   arrange(date)
 
-# Converting to Time Series Tibble
-ita_ts <- as_tsibble(ita, index = date)
+# Convert to Time Series Tibble
+Italy_ts <- as_tsibble(Italy, index = date)
 
-# splitting the data - 70% split
-splits <- initial_time_split(ita_ts, prop = 0.8)
+# Splits
+splits <- initial_time_split(Italy_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
-
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
 
 # removing dates - making data univariate
 train_ts <- as.ts(train$new_cases)
 
-ita_fit <- Arima(train_ts, order=c(2,1,2))
+# Run Model
+Italy_fit <- auto.arima(train_ts)
 
-checkresiduals(ita_fit) # Q* = 13.577, df = 6, p-value = 0.03474
+Italy_fit # order = c(1, 0, 3)
 
-ita_fit$aic # 4002.56
+preds <- predict(Italy_fit, n.ahead = 42)$pred
 
-# Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+Italy_preds <- bind_cols(test, preds) %>% 
+  rename("preds" = "...3")
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
-
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
-    fit <- Arima(train_ts, order = c(p,1,q))
-    aic <- fit$aic
-    results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
-      arrange(aic)
-  }
-}
-results # Best Result: p = 5, q = 3
-
-# Fit model with p = 5 and q = 3
-ita_final_fit <- Arima(train_ts, order = c(5, 1, 3))
-ita_final_fit %>% forecast() %>% autoplot()
-ita_forecast <- forecast(ita_final_fit, 42)
-autoplot(ita_forecast)
-
-preds <- predict(ita_final_fit, n.ahead = 42)$pred
-
-ita_preds <- bind_cols(test, preds) %>% 
-  rename(preds = "...3")
-
-ggplot(ita_preds) +
+ggplot(Italy_preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+  geom_line(mapping = aes(x = date, y = preds), color = "red4", linewidth = 2) +
   theme_minimal() +
   labs(
     x = "Date",
     y = "New Cases",
-    title = "Italy Arima",
+    title = "Italy Auto Arima",
     subtitle = "Predicited vs. Actual New Cases"
   )
 
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-italy_metrics <- ita_preds %>% 
+Italy_metrics <- Italy_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-italy_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard    117446. 
-# 2 mase    standard        21.8
-# 3 mae     standard    111501. 
+Italy_metrics
 
-save(italy_metrics, ita_preds, file = "Models/Auto Arima/results/Italy_metrics.rda")
+save(Italy_metrics, Italy_preds, file = "Models/Auto Arima/results/Italy_metrics.rda")
