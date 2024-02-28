@@ -15,3 +15,5 @@ personal
 data
 
 Models/XGBoost/results/
+
+Models/XGBoost/results/model_1.rda
