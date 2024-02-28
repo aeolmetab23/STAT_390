@@ -7,6 +7,10 @@ library(tictoc)
 
 # Write out results
 load("Models/XGBoost/results/model_3.rda")
+load("Models/XGBoost/results/splits.rda")
+
+train <- training(splits)
+test <- testing(splits)
 
 ## Winning model fit
 autoplot(covid_tune_3, metric = "rmse")
@@ -27,3 +31,9 @@ covid_metrics <- metric_set(rmse, mase, mae)
 
 # Apply Metrics
 covid_metrics(covid_pred, truth = new_cases, estimate = .pred)
+# # A tibble: 3 × 3
+# .metric .estimator .estimate
+# <chr>   <chr>          <dbl>
+# 1 rmse    standard    76613.  
+# 2 mase    standard        1.18
+# 3 mae     standard     7124. 

@@ -21,6 +21,8 @@ splits <- initial_time_split(covid_clean, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
+save(splits, file = "Models/XGBoost/results/splits.rda")
+
 # Folding(Resampling)
 folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
 
@@ -84,6 +86,6 @@ bt_tictoc_3 <- tibble(
 
 
 # Write out results
-save(covid_tune_3, bt_workflow_3, bt_tictoc_3, file = "results/model_3.rda")
+save(covid_tune_3, bt_workflow_3, bt_tictoc_3, file = "Models/XGBoost/results/model_3.rda")
 
 
