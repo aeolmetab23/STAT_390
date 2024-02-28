@@ -39,12 +39,12 @@ ita <- ita %>%
 # Converting to Time Series Tibble
 ita_ts <- as_tsibble(ita, index = date)
 
-# splitting the data - 70% split
+# Splits
 splits <- initial_time_split(ita_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
+# Use gg_tsdisplay with the converted tsibble object
 train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
 
 # removing dates - making data univariate
@@ -57,18 +57,15 @@ checkresiduals(ita_fit) # Q* = 13.577, df = 6, p-value = 0.03474
 ita_fit$aic # 4002.56
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+# Create result tibble
+results <- tibble(p = c(), q = c(), aic = c())
 
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
     fit <- Arima(train_ts, order = c(p,1,q))
     aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
@@ -79,8 +76,13 @@ results # Best Result: p = 5, q = 3
 
 # Fit model with p = 5 and q = 3
 ita_final_fit <- Arima(train_ts, order = c(5, 1, 3))
-ita_final_fit %>% forecast() %>% autoplot()
+
+ita_final_fit %>%
+  forecast() %>%
+  autoplot()
+
 ita_forecast <- forecast(ita_final_fit, 42)
+
 autoplot(ita_forecast)
 
 preds <- predict(ita_final_fit, n.ahead = 42)$pred
@@ -100,14 +102,10 @@ ggplot(ita_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 italy_metrics <- ita_preds %>% 
   covid_metrics(new_cases, estimate = preds)
-
-MLmetrics::MAPE(y_pred = ita_preds$new_cases, y_true = ita_preds$preds) # 0.8121392
 
 italy_metrics
 # # A tibble: 3 × 3

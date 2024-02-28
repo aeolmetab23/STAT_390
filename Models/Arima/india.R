@@ -49,8 +49,9 @@ splits <- initial_time_split(ind_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Now you can use gg_tsdisplay with the converted tsibble object
-train %>% feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+# Use gg_tsdisplay with the converted tsibble object
+train %>% 
+  gg_tsdisplay(y = new_cases, plot_type = "partial")
 
 # removing dates - making data univariate
 train_ts <- as.ts(train$new_cases)
@@ -63,18 +64,15 @@ checkresiduals(ind_fit)
 ind_fit$aic # 4227.352
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
-## Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+# Create result tibble
+results <- tibble(p = c(), q = c(), aic = c())
 
-## Run Loop
-for (p in ps) {
-  for (q in qs) {
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
     fit <- Arima(train_ts, order = c(p,1,q))
     aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
@@ -85,8 +83,13 @@ results # Best Result: p = 2, q = 4
 
 # Fit model with p = 2 and q = 4
 ind_final_fit <- Arima(train_ts, order=c(2, 1, 4))
-ind_final_fit %>% forecast() %>% autoplot()
+
+ind_final_fit %>%
+  forecast() %>%
+  autoplot()
+
 ind_forecast <- forecast(ind_final_fit, 42)
+
 autoplot(ind_forecast)
 
 preds <- predict(ind_final_fit, n.ahead = 42)$pred
@@ -106,14 +109,10 @@ ggplot(ind_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 india_metrics <- ind_preds %>% 
   covid_metrics(new_cases, estimate = preds)
-
-MLmetrics::MAPE(y_pred = ind_preds$new_cases, y_true = ind_preds$preds) # 0.9365359
 
 india_metrics
 # # A tibble: 3 × 3

@@ -44,7 +44,7 @@ aus <- aus %>%
 # Converting to Time Series Tibble
 aus_ts <- as_tsibble(aus, index = date)
 
-# splitting the data - 70% split
+# Splits
 splits <- initial_time_split(aus_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
@@ -65,28 +65,32 @@ checkresiduals(aus_fit)
 aus_fit$aic # 4035.741
 
 # Grid Search
-ps <- seq(0:4)
-qs <- seq(0:4)
+p_loop <- seq(0:4)
+q_loop <- seq(0:4)
 
 # Create result tibble
-results <- tibble(
-  p = c(),
-  q = c(),
-  aic = c())
+results <- tibble(p = c(), q = c(), aic = c())
 
-for (p in ps) {
-  for (q in qs) {
+# Run Loop
+for (p in p_loop) {
+  for (q in q_loop) {
     fit <- Arima(train_ts, order = c(p,1,q))
-    aic <- aus_fit$aic
+    aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
       arrange(aic)
   }
 }
+results
 
 # running model with best result from grid search (p=1, q=5)
 aus_final_fit <- Arima(train_ts, order=c(1,1,5))
-aus_final_fit %>% forecast() %>% autoplot()
-aus_forecast <- forecast(fit, 52)
+
+aus_final_fit %>%
+  forecast() %>%
+  autoplot()
+
+aus_forecast <- forecast(fit, 42)
+
 autoplot(aus_forecast)
 
 preds <- predict(aus_final_fit, n.ahead = 42)$pred
@@ -106,14 +110,10 @@ ggplot(aus_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 Australia_metrics <- aus_preds %>% 
   covid_metrics(new_cases, estimate = preds)
-
-MLmetrics::MAPE(y_pred = aus_preds$new_cases, y_true = aus_preds$preds) # 0.5670065
 
 Australia_metrics
 # # A tibble: 3 × 3
