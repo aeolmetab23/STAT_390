@@ -38,7 +38,7 @@ Sweden <- covid %>%
   filter(location == "Sweden") %>% 
   mutate(
     date = ymd(date)
-    ) %>% 
+  ) %>% 
   arrange(date)
 
 skimr::skim_without_charts(Sweden) # hand washing facilities completely missing, 
@@ -54,7 +54,7 @@ Sweden_clean <- Sweden %>%
     hosp_patients = ifelse(is.na(hosp_patients), 0, hosp_patients),
     icu_patients = ifelse(is.na(icu_patients), 0, icu_patients),
     new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
-    )
+  )
 
 # Begin Imputation
 numeric_columns <- sapply(Sweden_clean, is.numeric)
@@ -109,21 +109,16 @@ splits <- initial_time_split(Sweden_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Rename Columns to fit Prophet ----
-Sweden_train <- train %>% rename("ds" = date, "y" = new_cases)
+# Rename Columns ----
+Sweden_train <- train %>% 
+  rename("ds" = date, "y" = new_cases)
 
 # model
-Sweden_model <- prophet(
-  df = NULL,
-  growth = "flat",
-  yearly.seasonality = FALSE,
-  weekly.seasonality = TRUE,
-  daily.seasonality = FALSE,
-  seasonality.mode = "additive", # by observation
-  fit = TRUE
-)
+Sweden_model <- prophet(df = NULL, growth = "flat", yearly.seasonality = FALSE,
+                      weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                      seasonality.mode = "additive", fit = TRUE)
 
-# adding external regressors
+# Add Regressors
 Sweden_model = add_regressor(Sweden_model,"new_deaths", standardize = FALSE)
 Sweden_model = add_regressor(Sweden_model,"icu_patients", standardize = FALSE)
 Sweden_model = add_regressor(Sweden_model,'positive_rate', standardize = FALSE)
@@ -134,13 +129,13 @@ Sweden_model = add_regressor(Sweden_model,'excess_mortality', standardize = FALS
 # Sweden_model <- add_country_holidays(Sweden_model, country_name = "Sweden")
 ## "Holidays in Sweden are not currently supported"
 
-# model fitting with training data
+# Fit Model
 Sweden_fit = fit.prophet(Sweden_model, df = Sweden_train)
 
-# making future df
+# Future df
 future_Sweden <- make_future_dataframe(Sweden_fit, periods = 42, freq = "week")
 
-# build out columns of values for extra regressors
+# Future Regressors
 future_Sweden$new_deaths = head(Sweden_ts$new_deaths, nrow(future_Sweden))
 future_Sweden$icu_patients = head(Sweden_ts$icu_patients, nrow(future_Sweden))
 future_Sweden$positive_rate = head(Sweden_ts$positive_rate, nrow(future_Sweden))
@@ -148,16 +143,14 @@ future_Sweden$new_vaccinations = head(Sweden_ts$new_vaccinations, nrow(future_Sw
 future_Sweden$stringency_index = head(Sweden_ts$stringency_index, nrow(future_Sweden))
 future_Sweden$excess_mortality = head(Sweden_ts$excess_mortality, nrow(future_Sweden))
 
-# Forecasting
+# Forecast
 Sweden_forecast <- predict(Sweden_fit, future_Sweden)
 
 # Prophet Plots
 dyplot.prophet(Sweden_fit, Sweden_forecast, uncertainty = TRUE)
 
-# components of model
-prophet_plot_components(Sweden_fit, Sweden_forecast,
-                        uncertainty = TRUE, plot_cap = TRUE,
-                        yearly_start = 0, render_plot = TRUE)
+# Model Components
+prophet_plot_components(Sweden_fit, Sweden_forecast, weekly_start = 0)
 
 # Predict Future Values
 Sweden_future_preds <- Sweden_forecast %>% 
@@ -168,19 +161,12 @@ Sweden_preds <- bind_cols(test, Sweden_future_preds) %>%
   rename(preds = yhat)
 
 # Metrics
-# Metrics
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 Sweden_metrics <- Sweden_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = Sweden_preds$new_cases, y_true = Sweden_preds$preds) # 1.234136
-
 Sweden_metrics
-# 1 rmse    standard     17558.  
-# 2 mase    standard        48.8
-# 3 mae     standard     12741.  
-# 4 mape    standard         1.234136
+
+save(Sweden_metrics, Sweden_preds, file = "Models/Prophet - Multivariate/results/Sweden_metrics.rda")
 

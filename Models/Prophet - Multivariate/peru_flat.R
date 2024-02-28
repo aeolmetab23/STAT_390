@@ -34,42 +34,42 @@ registerDoMC(cores = 8)
 covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
 
 # Filter Country
-peru <- covid %>% 
+Peru <- covid %>% 
   filter(location == "Peru") %>% 
   mutate(
     date = ymd(date)
-    ) %>% 
+  ) %>% 
   arrange(date)
 
-skimr::skim_without_charts(peru) # hand washing facilities completely missing, 
+skimr::skim_without_charts(Peru) # hand washing facilities completely missing, 
 
-peru <- peru %>% 
+Peru <- Peru %>% 
   select(
     -c(handwashing_facilities)
   )
 
 # Opt to change NA's to Zeros
-peru_clean <- peru %>% 
+Peru_clean <- Peru %>% 
   mutate(
     hosp_patients = ifelse(is.na(hosp_patients), 0, hosp_patients),
     icu_patients = ifelse(is.na(icu_patients), 0, icu_patients),
     new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
-    )
+  )
 
 # Begin Imputation
-numeric_columns <- sapply(peru_clean, is.numeric)
-peru_clean_scaled <- scale(peru_clean[, numeric_columns])
+numeric_columns <- sapply(Peru_clean, is.numeric)
+Peru_clean_scaled <- scale(Peru_clean[, numeric_columns])
 
-# After scaling, ensure `peru_data_scaled` is still a data frame or matrix
-peru_clean_scaled <- as.data.frame(peru_clean_scaled)
+# After scaling, ensure `Peru_data_scaled` is still a data frame or matrix
+Peru_clean_scaled <- as.data.frame(Peru_clean_scaled)
 
 # Performing multiple imputation
 library(mice)
-imputed_data <- mice(peru_clean_scaled, m = 5, method = 'pmm', maxit = 5)
+imputed_data <- mice(Peru_clean_scaled, m = 5, method = 'pmm', maxit = 5)
 completed_data <- complete(imputed_data, 1)
 
 # Replace the original column with the imputed column, unscaling if necessary
-peru_cleaner <- peru_clean %>% 
+Peru_cleaner <- Peru_clean %>% 
   mutate(
     positive_rate = completed_data$positive_rate,
     excess_mortality = completed_data$excess_mortality,
@@ -77,10 +77,10 @@ peru_cleaner <- peru_clean %>%
     people_vaccinated = completed_data$people_vaccinated
   )
 
-peru_ts <- as_tsibble(peru_cleaner, index = date)
+Peru_ts <- as_tsibble(Peru_cleaner, index = date)
 
 # view seasonality trends
-ggplot(peru_ts, aes(x = factor(month), y = new_cases)) +
+ggplot(Peru_ts, aes(x = factor(month), y = new_cases)) +
   geom_col(show.legend = F, fill = "#583c83") +
   theme_minimal() +
   scale_fill_viridis_c(option = "H") +
@@ -92,7 +92,7 @@ ggplot(peru_ts, aes(x = factor(month), y = new_cases)) +
     subtitle = "Location: Peru"
   )
 
-ggplot(peru_ts) +
+ggplot(Peru_ts) +
   geom_line(aes(x = date, y = new_cases)) +
   theme_minimal() +
   labs(
@@ -104,83 +104,69 @@ ggplot(peru_ts) +
   )
 
 # Split Data
-splits <- initial_time_split(peru_ts, prop = 0.8)
+splits <- initial_time_split(Peru_ts, prop = 0.8)
 
 train <- training(splits)
 test <- testing(splits)
 
-# Rename Columns to fit Prophet ----
-peru_train <- train %>% rename("ds" = date, "y" = new_cases)
+# Rename Columns ----
+Peru_train <- train %>% 
+  rename("ds" = date, "y" = new_cases)
 
 # model
-peru_model <- prophet(
-  df = NULL,
-  growth = "flat",
-  yearly.seasonality = FALSE,
-  weekly.seasonality = TRUE,
-  daily.seasonality = FALSE,
-  seasonality.mode = "additive", # by observation
-  fit = TRUE
-)
+Peru_model <- prophet(df = NULL, growth = "flat", yearly.seasonality = FALSE,
+                       weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                       seasonality.mode = "additive", fit = TRUE)
 
-# adding external regressors
-peru_model = add_regressor(peru_model,"new_deaths", standardize = FALSE)
-peru_model = add_regressor(peru_model,"icu_patients", standardize = FALSE)
-peru_model = add_regressor(peru_model,'positive_rate', standardize = FALSE)
-peru_model = add_regressor(peru_model,'new_vaccinations', standardize = FALSE)
-peru_model = add_regressor(peru_model,'stringency_index', standardize = FALSE)
-peru_model = add_regressor(peru_model,'excess_mortality', standardize = FALSE)
+# Add Regressors
+Peru_model = add_regressor(Peru_model,"new_deaths", standardize = FALSE)
+Peru_model = add_regressor(Peru_model,"icu_patients", standardize = FALSE)
+Peru_model = add_regressor(Peru_model,'positive_rate', standardize = FALSE)
+Peru_model = add_regressor(Peru_model,'new_vaccinations', standardize = FALSE)
+Peru_model = add_regressor(Peru_model,'stringency_index', standardize = FALSE)
+Peru_model = add_regressor(Peru_model,'excess_mortality', standardize = FALSE)
 
-# peru_model <- add_country_holidays(peru_model, country_name = "Peru")
+# Peru_model <- add_country_holidays(Peru_model, country_name = "Peru")
 ## "Holidays in Peru are not currently supported"
 
-# model fitting with training data
-peru_fit = fit.prophet(peru_model, df = peru_train)
+# Fit Model
+Peru_fit = fit.prophet(Peru_model, df = Peru_train)
 
-# making future df
-future_peru <- make_future_dataframe(peru_fit, periods = 42, freq = "week")
+# Future df
+future_Peru <- make_future_dataframe(Peru_fit, periods = 42, freq = "week")
 
-# build out columns of values for extra regressors
-future_peru$new_deaths = head(peru_ts$new_deaths, nrow(future_peru))
-future_peru$icu_patients = head(peru_ts$icu_patients, nrow(future_peru))
-future_peru$positive_rate = head(peru_ts$positive_rate, nrow(future_peru))
-future_peru$new_vaccinations = head(peru_ts$new_vaccinations, nrow(future_peru))
-future_peru$stringency_index = head(peru_ts$stringency_index, nrow(future_peru))
-future_peru$excess_mortality = head(peru_ts$excess_mortality, nrow(future_peru))
+# Future Regressors
+future_Peru$new_deaths = head(Peru_ts$new_deaths, nrow(future_Peru))
+future_Peru$icu_patients = head(Peru_ts$icu_patients, nrow(future_Peru))
+future_Peru$positive_rate = head(Peru_ts$positive_rate, nrow(future_Peru))
+future_Peru$new_vaccinations = head(Peru_ts$new_vaccinations, nrow(future_Peru))
+future_Peru$stringency_index = head(Peru_ts$stringency_index, nrow(future_Peru))
+future_Peru$excess_mortality = head(Peru_ts$excess_mortality, nrow(future_Peru))
 
-# Forecasting
-peru_forecast <- predict(peru_fit, future_peru)
+# Forecast
+Peru_forecast <- predict(Peru_fit, future_Peru)
 
 # Prophet Plots
-dyplot.prophet(peru_fit, peru_forecast, uncertainty = TRUE)
+dyplot.prophet(Peru_fit, Peru_forecast, uncertainty = TRUE)
 
-# components of model
-prophet_plot_components(peru_fit, peru_forecast,
-                        uncertainty = TRUE, plot_cap = TRUE,
-                        yearly_start = 0, render_plot = TRUE)
+# Model Components
+prophet_plot_components(Peru_fit, Peru_forecast, weekly_start = 0)
 
 # Predict Future Values
-peru_future_preds <- peru_forecast %>% 
+Peru_future_preds <- Peru_forecast %>% 
   select(yhat) %>% 
   tail(n = 42)
 
-peru_preds <- bind_cols(test, peru_future_preds) %>% 
+Peru_preds <- bind_cols(test, Peru_future_preds) %>% 
   rename(preds = yhat)
 
 # Metrics
-# Metrics
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
-peru_metrics <- peru_preds %>% 
+Peru_metrics <- Peru_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = peru_preds$new_cases, y_true = peru_preds$preds) # 1.405161
+Peru_metrics
 
-peru_metrics
-# 1 rmse    standard     14469.  
-# 2 mase    standard        19.9
-# 3 mae     standard     10446.  
-# 4 mape    standard         1.033532
+save(Peru_metrics, Peru_preds, file = "Models/Prophet - Multivariate/results/Peru_metrics.rda")
 

@@ -34,42 +34,42 @@ registerDoMC(cores = 8)
 covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
 
 # Filter Country
-australia <- covid %>% 
+Australia <- covid %>% 
   filter(location == "Australia") %>% 
   mutate(
     date = ymd(date)
-    ) %>% 
+  ) %>% 
   arrange(date)
 
-skimr::skim_without_charts(australia) # hand washing facilities completely missing, 
+skimr::skim_without_charts(Australia) # hand washing facilities completely missing, 
 
-australia <- australia %>% 
+Australia <- Australia %>% 
   select(
     -c(handwashing_facilities)
   )
 
 # Opt to change NA's to Zeros
-australia_clean <- australia %>% 
+Australia_clean <- Australia %>% 
   mutate(
     hosp_patients = ifelse(is.na(hosp_patients), 0, hosp_patients),
     icu_patients = ifelse(is.na(icu_patients), 0, icu_patients),
     new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
-    )
+  )
 
 # Begin Imputation
-numeric_columns <- sapply(australia_clean, is.numeric)
-australia_clean_scaled <- scale(australia_clean[, numeric_columns])
+numeric_columns <- sapply(Australia_clean, is.numeric)
+Australia_clean_scaled <- scale(Australia_clean[, numeric_columns])
 
-# After scaling, ensure `australia_data_scaled` is still a data frame or matrix
-australia_clean_scaled <- as.data.frame(australia_clean_scaled)
+# After scaling, ensure `Australia_data_scaled` is still a data frame or matrix
+Australia_clean_scaled <- as.data.frame(Australia_clean_scaled)
 
 # Performing multiple imputation
 library(mice)
-imputed_data <- mice(australia_clean_scaled, m = 5, method = 'pmm', maxit = 5)
+imputed_data <- mice(Australia_clean_scaled, m = 5, method = 'pmm', maxit = 5)
 completed_data <- complete(imputed_data, 1)
 
 # Replace the original column with the imputed column, unscaling if necessary
-australia_cleaner <- australia_clean %>% 
+Australia_cleaner <- Australia_clean %>% 
   mutate(
     positive_rate = completed_data$positive_rate,
     excess_mortality = completed_data$excess_mortality,
@@ -77,10 +77,10 @@ australia_cleaner <- australia_clean %>%
     people_vaccinated = completed_data$people_vaccinated
   )
 
-australia_ts <- as_tsibble(australia_cleaner, index = date)
+Australia_ts <- as_tsibble(Australia_cleaner, index = date)
 
 # view seasonality trends
-ggplot(australia_ts, aes(x = factor(month), y = new_cases)) +
+ggplot(Australia_ts, aes(x = factor(month), y = new_cases)) +
   geom_col(show.legend = F, fill = "#583c83") +
   theme_minimal() +
   scale_fill_viridis_c(option = "H") +
@@ -92,7 +92,7 @@ ggplot(australia_ts, aes(x = factor(month), y = new_cases)) +
     subtitle = "Location: Australia"
   )
 
-ggplot(australia_ts) +
+ggplot(Australia_ts) +
   geom_line(aes(x = date, y = new_cases)) +
   theme_minimal() +
   labs(
@@ -104,80 +104,69 @@ ggplot(australia_ts) +
   )
 
 # Split Data
-splits <- initial_time_split(australia_ts, prop = 0.8)
+splits <- initial_time_split(Australia_ts, prop = 0.8)
 
 train <- training(splits)
 test <- testing(splits)
 
 # Rename Columns ----
-australia_train <- train %>% 
+Australia_train <- train %>% 
   rename("ds" = date, "y" = new_cases)
 
 # model
-australia_model <- prophet(
-  df = NULL,
-  growth = "linear",
-  yearly.seasonality = FALSE,
-  weekly.seasonality = TRUE,
-  daily.seasonality = FALSE,
-  seasonality.mode = "additive", # by observation
-  fit = TRUE
-)
+Australia_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = FALSE,
+                       weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                       seasonality.mode = "additive", fit = TRUE)
 
-# adding external regressors
-australia_model = add_regressor(australia_model,"new_deaths", standardize = FALSE)
-australia_model = add_regressor(australia_model,"icu_patients", standardize = FALSE)
-australia_model = add_regressor(australia_model,'new_vaccinations', standardize = FALSE)
-australia_model = add_regressor(australia_model,'positive_rate', standardize = FALSE)
-australia_model = add_regressor(australia_model,'stringency_index', standardize = FALSE)
-australia_model = add_regressor(australia_model,'excess_mortality', standardize = FALSE)
+# Add Regressors
+Australia_model = add_regressor(Australia_model,"new_deaths", standardize = FALSE)
+Australia_model = add_regressor(Australia_model,"icu_patients", standardize = FALSE)
+Australia_model = add_regressor(Australia_model,'positive_rate', standardize = FALSE)
+Australia_model = add_regressor(Australia_model,'new_vaccinations', standardize = FALSE)
+Australia_model = add_regressor(Australia_model,'stringency_index', standardize = FALSE)
+Australia_model = add_regressor(Australia_model,'excess_mortality', standardize = FALSE)
 
-
-# australia_model <- add_country_holidays(australia_model, country_name = "Australia")
+# Australia_model <- add_country_holidays(Australia_model, country_name = "Australia")
 ## "Holidays in Australia are not currently supported"
 
-# model fitting with training data
-australia_fit = fit.prophet(australia_model, df = australia_train)
+# Fit Model
+Australia_fit = fit.prophet(Australia_model, df = Australia_train)
 
-# making future df
-future_australia <- make_future_dataframe(australia_fit, periods = 42, freq = "week")
+# Future df
+future_Australia <- make_future_dataframe(Australia_fit, periods = 42, freq = "week")
 
-# Extra Regressors
-future_australia$new_deaths = head(australia_ts$new_deaths, nrow(future_australia))
-future_australia$icu_patients = head(australia_ts$icu_patients, nrow(future_australia))
-future_australia$new_vaccinations = head(australia_ts$new_vaccinations, nrow(future_australia))
-future_australia$positive_rate = head(australia_ts$positive_rate, nrow(future_australia))
-future_australia$stringency_index = head(australia_ts$stringency_index, nrow(future_australia))
-future_australia$excess_mortality = head(australia_ts$excess_mortality, nrow(future_australia))
+# Future Regressors
+future_Australia$new_deaths = head(Australia_ts$new_deaths, nrow(future_Australia))
+future_Australia$icu_patients = head(Australia_ts$icu_patients, nrow(future_Australia))
+future_Australia$positive_rate = head(Australia_ts$positive_rate, nrow(future_Australia))
+future_Australia$new_vaccinations = head(Australia_ts$new_vaccinations, nrow(future_Australia))
+future_Australia$stringency_index = head(Australia_ts$stringency_index, nrow(future_Australia))
+future_Australia$excess_mortality = head(Australia_ts$excess_mortality, nrow(future_Australia))
 
-# Forecasting
-australia_forecast <- predict(australia_fit, future_australia)
+# Forecast
+Australia_forecast <- predict(Australia_fit, future_Australia)
 
 # Prophet Plots
-dyplot.prophet(australia_fit, australia_forecast, uncertainty = TRUE)
+dyplot.prophet(Australia_fit, Australia_forecast, uncertainty = TRUE)
 
-# components of model
-prophet_plot_components(australia_fit, australia_forecast,
-                        uncertainty = TRUE, plot_cap = TRUE,
-                        yearly_start = 0, render_plot = TRUE)
+# Model Components
+prophet_plot_components(Australia_fit, Australia_forecast, weekly_start = 0)
 
 # Predict Future Values
-australia_future_preds <- australia_forecast %>% 
+Australia_future_preds <- Australia_forecast %>% 
   select(yhat) %>% 
   tail(n = 42)
 
-australia_preds <- bind_cols(test, australia_future_preds) %>% 
+Australia_preds <- bind_cols(test, Australia_future_preds) %>% 
   rename(preds = yhat)
 
 # Metrics
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
-australia_metrics <- australia_preds %>% 
+Australia_metrics <- Australia_preds %>% 
   covid_metrics(new_cases, estimate = preds)
-australia_metrics
 
-MLmetrics::MAPE(y_pred = australia_preds$new_cases, y_true = australia_preds$preds) # MAPE: 0.9156547
+Australia_metrics
 
+save(Australia_metrics, Australia_preds, file = "Models/Prophet - Multivariate/results_linear/Australia_metrics.rda")
 

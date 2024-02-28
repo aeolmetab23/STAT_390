@@ -38,7 +38,7 @@ Morocco <- covid %>%
   filter(location == "Morocco") %>% 
   mutate(
     date = ymd(date)
-    ) %>% 
+  ) %>% 
   arrange(date)
 
 skimr::skim_without_charts(Morocco) # hand washing facilities completely missing, 
@@ -54,7 +54,7 @@ Morocco_clean <- Morocco %>%
     hosp_patients = ifelse(is.na(hosp_patients), 0, hosp_patients),
     icu_patients = ifelse(is.na(icu_patients), 0, icu_patients),
     new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
-    )
+  )
 
 # Begin Imputation
 numeric_columns <- sapply(Morocco_clean, is.numeric)
@@ -109,55 +109,46 @@ splits <- initial_time_split(Morocco_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
-# Rename Columns to fit Prophet ----
-Morocco_train <- train %>% rename("ds" = date, "y" = new_cases)
+# Rename Columns ----
+Morocco_train <- train %>% 
+  rename("ds" = date, "y" = new_cases)
 
 # model
-Morocco_model <- prophet(
-  df = NULL,
-  growth = "linear",
-  yearly.seasonality = FALSE,
-  weekly.seasonality = TRUE,
-  daily.seasonality = FALSE,
-  seasonality.mode = "additive", # by observation
-  fit = TRUE
-)
+Morocco_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = FALSE,
+                      weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                      seasonality.mode = "additive", fit = TRUE)
 
-# adding external regressors
+# Add Regressors
 Morocco_model = add_regressor(Morocco_model,"new_deaths", standardize = FALSE)
 Morocco_model = add_regressor(Morocco_model,"icu_patients", standardize = FALSE)
 Morocco_model = add_regressor(Morocco_model,'positive_rate', standardize = FALSE)
 Morocco_model = add_regressor(Morocco_model,'new_vaccinations', standardize = FALSE)
 Morocco_model = add_regressor(Morocco_model,'stringency_index', standardize = FALSE)
-# Morocco_model = add_regressor(Morocco_model,'excess_mortality', standardize = FALSE)
 
 # Morocco_model <- add_country_holidays(Morocco_model, country_name = "Morocco")
 ## "Holidays in Morocco are not currently supported"
 
-# model fitting with training data
+# Fit Model
 Morocco_fit = fit.prophet(Morocco_model, df = Morocco_train)
 
-# making future df
+# Future df
 future_Morocco <- make_future_dataframe(Morocco_fit, periods = 42, freq = "week")
 
-# build out columns of values for extra regressors
+# Future Regressors
 future_Morocco$new_deaths = head(Morocco_ts$new_deaths, nrow(future_Morocco))
 future_Morocco$icu_patients = head(Morocco_ts$icu_patients, nrow(future_Morocco))
 future_Morocco$positive_rate = head(Morocco_ts$positive_rate, nrow(future_Morocco))
 future_Morocco$new_vaccinations = head(Morocco_ts$new_vaccinations, nrow(future_Morocco))
 future_Morocco$stringency_index = head(Morocco_ts$stringency_index, nrow(future_Morocco))
-# future_Morocco$excess_mortality = head(Morocco_ts$excess_mortality, nrow(future_Morocco))
 
-# Forecasting
+# Forecast
 Morocco_forecast <- predict(Morocco_fit, future_Morocco)
 
 # Prophet Plots
 dyplot.prophet(Morocco_fit, Morocco_forecast, uncertainty = TRUE)
 
-# components of model
-prophet_plot_components(Morocco_fit, Morocco_forecast,
-                        uncertainty = TRUE, plot_cap = TRUE,
-                        yearly_start = 0, render_plot = TRUE)
+# Model Components
+prophet_plot_components(Morocco_fit, Morocco_forecast, weekly_start = 0)
 
 # Predict Future Values
 Morocco_future_preds <- Morocco_forecast %>% 
@@ -168,18 +159,12 @@ Morocco_preds <- bind_cols(test, Morocco_future_preds) %>%
   rename(preds = yhat)
 
 # Metrics
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 Morocco_metrics <- Morocco_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = Morocco_preds$new_cases, y_true = Morocco_preds$preds) # 1.028463
-
 Morocco_metrics
-# 1 rmse    standard     14106.  
-# 2 mase    standard       287.
-# 3 mae     standard     12236.  
-# 4 mape    standard         1.028463
+
+save(Morocco_metrics, Morocco_preds, file = "Models/Prophet - Multivariate/results_linear/Morocco_metrics.rda")
 
