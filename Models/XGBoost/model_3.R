@@ -8,6 +8,16 @@ library(caret)
 library(doMC)
 library(tictoc)
 
+# handle common conflicts
+tidymodels_prefer()
+
+# Seed
+set.seed(6432)
+
+# set up parallel processing
+parallel::detectCores()
+registerDoMC(cores = 8)
+
 # Load data
 covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
 

@@ -8,6 +8,16 @@ library(caret)
 library(doMC)
 library(tictoc)
 
+# handle common conflicts
+tidymodels_prefer()
+
+# Seed
+set.seed(6432)
+
+# set up parallel processing
+parallel::detectCores()
+registerDoMC(cores = 8)
+
 # Load data
 covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
 
@@ -30,10 +40,10 @@ recipe <- recipe(new_cases ~ ., data = train) %>%
   step_impute_knn(neighbors = 5) %>% 
   step_normalize(all_numeric_predictors())
 
-recipe %>%
-  prep() %>%
-  bake(new_data = NULL) %>%
-  View()
+# recipe %>%
+#   prep() %>%
+#   bake(new_data = NULL) %>%
+#   View()
 
 # define model engine and workflow
 bt_model <-
@@ -53,7 +63,7 @@ bt_params <- hardhat::extract_parameter_set_dials(bt_model) %>%
 # define tuning grid
 bt_grid <- grid_regular(bt_params, levels = 5)
 
-bt_workflow <- workflow() %>% 
+bt_workflow_2 <- workflow() %>% 
   add_model(bt_model) %>% 
   add_recipe(recipe)
 
@@ -62,8 +72,8 @@ bt_workflow <- workflow() %>%
 tic.clearlog()
 tic("Boosted Tree")
 
-covid_tune <- tune_grid(
-  bt_workflow,
+covid_tune_2 <- tune_grid(
+  bt_workflow_2,
   resamples = folds,
   grid = bt_grid,
   control = control_grid(save_pred = TRUE,
@@ -76,32 +86,13 @@ toc(log = TRUE)
 
 time_log <- tic.log(format = FALSE)
 
-bt_tictoc <- tibble(
+bt_tictoc_2 <- tibble(
   model = time_log[[1]]$msg,
   runtime = time_log[[1]]$toc - time_log[[1]]$tic)
 
 
 # Write out results
-save(covid_tune, bt_workflow, bt_tictoc, splits, file = "results/model_2.rda")
+save(covid_tune_2, bt_workflow_2, bt_tictoc_2, file = "Models/XGBoost/results/model_2.rda")
 
-## Winning model fit
 
-autoplot(covid_tune, metric = "rmse")
-show_best(covid_tune, metric = "rmse")[1,]
-
-covid_wflow <- bt_workflow %>%
-  finalize_workflow(select_best(covid_tune, metric = "rmse"))
-
-covid_fit <- fit(covid_wflow, train)
-
-## Tibble of predicted and actual values
-covid_pred <- test %>%
-  bind_cols(predict(covid_fit, test)) %>%
-  select(new_cases, .pred)
-
-## Metric Set
-covid_metrics <- metric_set(rmse, mase, mae)
-
-# Apply Metrics
-covid_metrics(covid_pred, truth = new_cases, estimate = .pred)
 

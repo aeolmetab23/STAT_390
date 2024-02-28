@@ -8,6 +8,16 @@ library(caret)
 library(doMC)
 library(tictoc)
 
+# handle common conflicts
+tidymodels_prefer()
+
+# Seed
+set.seed(6432)
+
+# set up parallel processing
+parallel::detectCores()
+registerDoMC(cores = 8)
+
 # Load data
 covid <- read_csv(here::here("Models/model_data/covid_cleaner.csv"))
 
@@ -26,11 +36,11 @@ test <- testing(splits)
 folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
 
 ## Recipe 1
-recipe <- recipe(new_cases ~ ., data = train) %>%
+recipe_1 <- recipe(new_cases ~ ., data = train) %>%
   update_role(date, tests_units, iso_code, continent, location, new_role = "id") %>% 
   step_normalize(all_numeric_predictors())
 
-recipe %>%
+recipe_1 %>%
   prep() %>%
   bake(new_data = NULL) %>%
   View()
@@ -53,17 +63,17 @@ bt_params <- hardhat::extract_parameter_set_dials(bt_model) %>%
 # define tuning grid
 bt_grid <- grid_regular(bt_params, levels = 5)
 
-bt_workflow <- workflow() %>% 
+bt_workflow_1 <- workflow() %>% 
   add_model(bt_model) %>% 
-  add_recipe(recipe)
+  add_recipe(recipe_1)
 
 # Tune grid 
 # clear and start timer
 tic.clearlog()
 tic("Boosted Tree")
 
-covid_tune <- tune_grid(
-  bt_workflow,
+covid_tune_1 <- tune_grid(
+  bt_workflow_1,
   resamples = folds,
   grid = bt_grid,
   control = control_grid(save_pred = TRUE,
@@ -76,32 +86,11 @@ toc(log = TRUE)
 
 time_log <- tic.log(format = FALSE)
 
-bt_tictoc <- tibble(
+bt_tictoc_1 <- tibble(
   model = time_log[[1]]$msg,
   runtime = time_log[[1]]$toc - time_log[[1]]$tic)
 
 
 # Write out results
-save(covid_tune, bt_workflow, bt_tictoc, splits, file = "results/model_1.rda")
-
-## Winning model fit
-
-autoplot(covid_tune, metric = "mae")
-show_best(covid_tune, metric = "mae")[1,]
-
-covid_wflow <- bt_workflow %>%
-  finalize_workflow(select_best(covid_tune, metric = "rmse"))
-
-covid_fit <- fit(covid_wflow, train)
-
-## Tibble of predicted and actual values
-covid_pred <- test %>%
-  bind_cols(predict(covid_fit, test)) %>%
-  select(new_cases, .pred)
-
-## Metric Set
-covid_metrics <- metric_set(rmse, mase, mae)
-
-# Apply Metrics
-covid_metrics(covid_pred, truth = new_cases, estimate = .pred)
+save(covid_tune_1, bt_workflow_1, bt_tictoc_1, file = "Models/XGBoost/results/model_1.rda")
 
