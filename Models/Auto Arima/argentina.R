@@ -47,7 +47,7 @@ test <- testing(splits)
 train_ts <- as.ts(train$new_cases)
 
 # Run Model
-argentina_fit <- auto.arima(train_ts)
+argentina_fit <- auto.arima(train_ts, d = 1)
 
 argentina_fit # order = c(1, 0, 3)
 
@@ -73,12 +73,17 @@ covid_metrics <- metric_set(rmse, mase, mae)
 argentina_metrics <- argentina_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-argentina_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard      53684.
-# 2 mase    standard        299.
-# 3 mae     standard      52543.
+argentina_fit # order = c(1, 0, 3)
 
-save(argentina_metrics, argentina_preds, file = "Models/Auto Arima/results/Argentina_metrics.rda")
+argentina_Auto_Arima <- pivot_wider(argentina_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Argentina",
+    p = 0,
+    q = 5,
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+argentina_Auto_Arima
+
+save(argentina_Auto_Arima, argentina_preds, file = "Models/Auto Arima/results/Argentina_metrics.rda")

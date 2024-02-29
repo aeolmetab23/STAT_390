@@ -87,11 +87,13 @@ italy_metrics <- itl_preds %>%
 
 italy_metrics
 
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     94789. 
-# 2 mase    standard        14.9
-# 3 mae     standard     76114. 
+Italy_Prophet_uni <- pivot_wider(italy_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Italy"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Italy_Prophet_uni
 
-save(italy_metrics, itl_preds, file = "Models/Prophet - Univariate/results/Italy_metrics.rda")
+save(Italy_Prophet_uni, itl_preds, file = "Models/Prophet - Univariate/results/Italy_metrics.rda")

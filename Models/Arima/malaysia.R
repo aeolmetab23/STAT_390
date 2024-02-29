@@ -85,10 +85,10 @@ autoplot(mal_forecast)
 
 preds <- predict(mal_final_fit, n.ahead = 42)$pred
 
-mal_preds <- bind_cols(test, preds) %>% 
+Malaysia_preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(mal_preds) +
+ggplot(Malaysia_preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
   theme_minimal() +
@@ -104,15 +104,18 @@ library(MLmetrics)
 
 covid_metrics <- metric_set(rmse, mase, mae)
 
-malaysia_metrics <- mal_preds %>% 
+Malaysia_metrics <- Malaysia_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-malaysia_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     6449.  
-# 2 mase    standard        2.29
-# 3 mae     standard     5374. 
+Malaysia_Arima <- pivot_wider(Malaysia_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Malaysia",
+    p = results$p[1],
+    q = results$q[1]
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+Malaysia_Arima
 
-save(malaysia_metrics, mal_preds, file = "Models/Arima/results/Malaysia_metrics.rda")
+save(Malaysia_Arima, Malaysia_preds, file = "Models/Arima/results/Malaysia_metrics.rda")

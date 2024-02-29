@@ -89,6 +89,19 @@ argentina_metrics
 # 1 rmse    standard     54913.  
 # 2 mase    standard       259.
 # 3 mae     standard     45620.  
-# 4 mape    standard         1.035586
 
-save(argentina_metrics, arg_preds, file = "Models/Prophet - Univariate/results/Argentina_metrics.rda")
+Argentina_Prophet_uni <- pivot_wider(argentina_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Argentina"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Argentina_Prophet_uni
+
+save(Argentina_Prophet_uni, arg_preds, file = "Models/Prophet - Univariate/results/Argentina_metrics.rda")
+
+
+
+
+

@@ -47,7 +47,7 @@ test <- testing(splits)
 train_ts <- as.ts(train$new_cases)
 
 # Run Model
-Mexico_fit <- auto.arima(train_ts)
+Mexico_fit <- auto.arima(train_ts, d=1)
 
 Mexico_fit # order = c(1, 0, 3)
 
@@ -73,6 +73,17 @@ covid_metrics <- metric_set(rmse, mase, mae)
 Mexico_metrics <- Mexico_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-Mexico_metrics
+Mexico_fit # order = c(3, 1, 1)
 
-save(Mexico_metrics, Mexico_preds, file = "Models/Auto Arima/results/Mexico_metrics.rda")
+Mexico_Auto_Arima <- pivot_wider(Mexico_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Mexico",
+    p = 3,
+    q = 1,
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+Mexico_Auto_Arima
+
+save(Mexico_Auto_Arima, Mexico_preds, file = "Models/Auto Arima/results/Mexico_metrics.rda")

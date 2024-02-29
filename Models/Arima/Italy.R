@@ -107,13 +107,16 @@ covid_metrics <- metric_set(rmse, mase, mae)
 italy_metrics <- ita_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-italy_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard    117446. 
-# 2 mase    standard        21.8
-# 3 mae     standard    111501. 
+Italy_Arima <- pivot_wider(italy_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Italy",
+    p = results$p[1],
+    q = results$q[1]
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+Italy_Arima
 
-save(italy_metrics, ita_preds, file = "Models/Arima/results/Italy_metrics.rda")
+save(Italy_Arima, ita_preds, file = "Models/Arima/results/Italy_metrics.rda")
 

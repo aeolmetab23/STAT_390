@@ -47,9 +47,9 @@ test <- testing(splits)
 train_ts <- as.ts(train$new_cases)
 
 # Run Model
-Italy_fit <- auto.arima(train_ts)
+Italy_fit <- auto.arima(train_ts, d = 1)
 
-Italy_fit # order = c(1, 0, 3)
+Italy_fit 
 
 preds <- predict(Italy_fit, n.ahead = 42)$pred
 
@@ -73,6 +73,17 @@ covid_metrics <- metric_set(rmse, mase, mae)
 Italy_metrics <- Italy_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-Italy_metrics
+Italy_fit # order = c(1, 0, 3)
 
-save(Italy_metrics, Italy_preds, file = "Models/Auto Arima/results/Italy_metrics.rda")
+italy_Auto_Arima <- pivot_wider(Italy_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Italy",
+    p = 3,
+    q = 1,
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+italy_Auto_Arima
+
+save(italy_Auto_Arima, Italy_preds, file = "Models/Auto Arima/results/Italy_metrics.rda")

@@ -87,11 +87,14 @@ india_metrics <- india_preds %>%
 
 india_metrics
 
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     95752. 
-# 2 mase    standard        34.0
-# 3 mae     standard     79793. 
+India_Prophet_uni <- pivot_wider(india_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "India"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+India_Prophet_uni
 
-save(india_metrics, india_preds, file = "Models/Prophet - Univariate/results/India_metrics.rda")
+save(India_Prophet_uni, india_preds, file = "Models/Prophet - Univariate/results/India_metrics.rda")
 

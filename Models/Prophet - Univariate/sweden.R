@@ -80,19 +80,20 @@ ggplot(swd_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 sweden_metrics <- swd_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = swd_preds$new_cases, y_true = swd_preds$preds) # 1.07716
-
 sweden_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     22577. 
-# 2 mase    standard        80.2
-# 3 mae     standard     20942.
+
+Sweden_Prophet_uni <- pivot_wider(sweden_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Sweden"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Sweden_Prophet_uni
+
+save(Sweden_Prophet_uni, swd_preds, file = "Models/Prophet - Univariate/results/Sweden_metrics.rda")

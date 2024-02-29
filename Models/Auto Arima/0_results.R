@@ -9,35 +9,20 @@ for(i in metric_files){
   load(i)
 }
 
-location_results <- bind_rows(argentina_metrics,
-                              australia_metrics,
-                              india_metrics,
-                              italy_metrics,
-                              Malaysia_metrics,
-                              mexico_metrics,
-                              Morocco_metrics,
-                              peru_metrics,
-                              sweden_metrics,
-                              uk_metrics) %>% 
-  mutate(location = c("Argentina","Argentina","Argentina",
-                      "Australia","Australia","Australia",
-                      "India","India","India",
-                      "Italy","Italy","Italy",
-                      "Malaysia","Malaysia","Malaysia",
-                      "Mexico","Mexico","Mexico",
-                      "Morocco","Morocco","Morocco",
-                      "Peru","Peru","Peru",
-                      "Sweden","Sweden","Sweden",
-                      "United Kingdom","United Kingdom","United Kingdom"))
-
-location_metrics <- pivot_wider(location_results, names_from = ".metric", values_from = ".estimate")
-
-auto_arima_metrics <- location_metrics %>% 
-  mutate(
-    model = "Auto Arima"
-  ) %>% 
+auto_arima_results <- bind_rows(argentina_Auto_Arima,
+                              australia_Auto_Arima,
+                              india_Auto_Arima,
+                              italy_Auto_Arima,
+                              Malaysia_Auto_Arima,
+                              Mexico_Auto_Arima,
+                              Morocco_Auto_Arima,
+                              Peru_Auto_Arima,
+                              Sweden_Auto_Arima,
+                              UK_Auto_Arima) %>% 
   arrange(rmse)
 
-auto_arima_metrics
+auto_arima_results
+
+write_csv(auto_arima_results, file = "Models/Auto Arima/results/auto_arima_results_donald.csv")
 
 

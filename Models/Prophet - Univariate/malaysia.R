@@ -87,11 +87,13 @@ malaysia_metrics <- mal_preds %>%
 
 malaysia_metrics
 
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard    28437.  
-# 2 mase    standard        9.64
-# 3 mae     standard    22623.
+Malaysia_Prophet_uni <- pivot_wider(malaysia_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Malaysia"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Malaysia_Prophet_uni
 
-save(malaysia_metrics, mal_preds, file = "Models/Prophet - Univariate/results/Malaysia_metrics.rda")
+save(Malaysia_Prophet_uni, mal_preds, file = "Models/Prophet - Univariate/results/Malaysia_metrics.rda")

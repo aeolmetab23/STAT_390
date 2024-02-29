@@ -86,10 +86,13 @@ covid_metrics <- metric_set(rmse, mase, mae)
 australia_metrics <- aus_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-australia_metrics
-# 1 rmse    standard     93898.  
-# 2 mase    standard        29.3
-# 3 mae     standard     81288.  
-# 4 mape    standard         0.8384264
+Australia_Prophet_uni <- pivot_wider(australia_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Australia"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Australia_Prophet_uni
 
-save(australia_metrics, aus_preds, file = "Models/Prophet - Univariate/results/Australia_metrics.rda")
+save(Australia_Prophet_uni, aus_preds, file = "Models/Prophet - Univariate/results/Australia_metrics.rda")

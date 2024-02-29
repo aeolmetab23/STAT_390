@@ -80,19 +80,20 @@ ggplot(peru_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 peru_metrics <- peru_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = peru_preds$new_cases, y_true = peru_preds$preds) # 0.9544694
-
 peru_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     17222. 
-# 2 mase    standard        27.4
-# 3 mae     standard     14360. 
+
+Peru_Prophet_uni <- pivot_wider(peru_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Peru"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Peru_Prophet_uni
+
+save(Peru_Prophet_uni, peru_preds, file = "Models/Prophet - Univariate/results/Peru_metrics.rda")

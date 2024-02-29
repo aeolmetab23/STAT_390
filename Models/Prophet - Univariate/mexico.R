@@ -80,14 +80,10 @@ ggplot(mex_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 mexico_metrics <- mex_preds %>% 
   covid_metrics(new_cases, estimate = preds)
-
-MLmetrics::MAPE(y_pred = mex_preds$new_cases, y_true = mex_preds$preds) # 1.292671
 
 mexico_metrics
 # # A tibble: 3 × 3
@@ -96,3 +92,15 @@ mexico_metrics
 # 1 rmse    standard     28848. 
 # 2 mase    standard        22.9
 # 3 mae     standard     24268.
+
+
+Mexico_Prophet_uni <- pivot_wider(mexico_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Mexico"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Mexico_Prophet_uni
+
+save(Mexico_Prophet_uni, mex_preds, file = "Models/Prophet - Univariate/results/Mexico_metrics.rda")

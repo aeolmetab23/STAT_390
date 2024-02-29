@@ -62,7 +62,7 @@ checkresiduals(aus_fit)
 # df = 3
 # p-value = 0.2499
 
-aus_fit$aic # 4035.741
+aus_fit$aic # 4039.112
 
 # Grid Search
 p_loop <- seq(0:4)
@@ -82,8 +82,8 @@ for (p in p_loop) {
 }
 results
 
-# running model with best result from grid search (p=1, q=5)
-aus_final_fit <- Arima(train_ts, order=c(1,1,5))
+# running model with best result from grid search (p=2, q=2)
+aus_final_fit <- Arima(train_ts, order=c(2,1,2))
 
 aus_final_fit %>%
   forecast() %>%
@@ -115,13 +115,16 @@ covid_metrics <- metric_set(rmse, mase, mae)
 Australia_metrics <- aus_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-Australia_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard    20219.  
-# 2 mase    standard        6.31
-# 3 mae     standard    17503. 
+Australia_Arima <- pivot_wider(Australia_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Australia",
+    p = results$p[1],
+    q = results$q[1]
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+Australia_Arima
 
-save(Australia_metrics, aus_preds, file = "Models/Arima/results/Australia_metrics.rda")
+save(Australia_Arima, arg_preds, file = "Models/Arima/results/Australia_metrics.rda")
 

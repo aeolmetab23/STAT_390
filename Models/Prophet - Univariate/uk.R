@@ -80,19 +80,20 @@ ggplot(uk_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 uk_metrics <- uk_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = uk_preds$new_cases, y_true = uk_preds$preds) # 1.059035
-
 uk_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     308475.
-# 2 mase    standard        157.
-# 3 mae     standard     296086.
+
+UK_Prophet_uni <- pivot_wider(uk_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "United Kingdom"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+UK_Prophet_uni
+
+save(UK_Prophet_uni, uk_preds, file = "Models/Prophet - Univariate/results/UK_metrics.rda")

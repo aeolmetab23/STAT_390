@@ -47,9 +47,9 @@ test <- testing(splits)
 train_ts <- as.ts(train$new_cases)
 
 # Run Model
-Morocco_fit <- auto.arima(train_ts)
+Morocco_fit <- auto.arima(train_ts, d = 1)
 
-Morocco_fit # order = c(1, 0, 3)
+Morocco_fit # order = c(0, 1, 2)
 
 preds <- predict(Morocco_fit, n.ahead = 42)$pred
 
@@ -73,7 +73,17 @@ covid_metrics <- metric_set(rmse, mase, mae)
 Morocco_metrics <- Morocco_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-Morocco_metrics
+Morocco_fit # order = c(3, 1, 1)
 
+Morocco_Auto_Arima <- pivot_wider(Morocco_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Morocco",
+    p = 0,
+    q = 2,
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+Morocco_Auto_Arima
 
-save(Morocco_metrics, Morocco_preds, file = "Models/Auto Arima/results/Morocco_metrics.rda")
+save(Morocco_Auto_Arima, Morocco_preds, file = "Models/Auto Arima/results/Morocco_metrics.rda")

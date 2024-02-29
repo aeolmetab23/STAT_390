@@ -80,19 +80,20 @@ ggplot(mor_preds) +
   )
 
 # Metrics ----
-library(MLmetrics)
-
 covid_metrics <- metric_set(rmse, mase, mae)
 
 morocco_metrics <- mor_preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-MLmetrics::MAPE(y_pred = mor_preds$new_cases, y_true = mor_preds$preds) # 0.9783153
-
 morocco_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard       5911.
-# 2 mase    standard        101.
-# 3 mae     standard       4326.
+
+Morocco_Prophet_uni <- pivot_wider(morocco_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Morocco"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Morocco_Prophet_uni
+
+save(Morocco_Prophet_uni, mor_preds, file = "Models/Prophet - Univariate/results/Morocco_metrics.rda")

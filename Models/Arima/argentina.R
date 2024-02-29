@@ -7,13 +7,9 @@ library(patchwork)
 library(readr)
 library(stacks)
 library(caret)
-library(skimr)
 library(ggfortify)
 library(doMC)
-library(randomForest)
-library(tictoc)
 library(modeltime)
-library(xgboost)
 library(lubridate)
 library(timetk)
 library(prophet)
@@ -62,7 +58,7 @@ arg_fit <- Arima(train_ts, order=c(2,1,1))
 checkresiduals(arg_fit) # Q* = 17.26, df = 5, p-value = 0.004033
 
 # Alkaline
-arg_fit$aic # 3940.017
+arg_fit$aic # 3949.928
 
 # Grid Search
 p_loop <- seq(0:4)
@@ -82,7 +78,7 @@ for (p in p_loop) {
 }
 results
 
-# running model with best result from grid search (p=1, q=5)
+# running model with best result from grid search (p=1, q=4)
 arg_final_fit <- Arima(train_ts, order=c(1,1,4))
 
 arg_final_fit %>%
@@ -116,14 +112,17 @@ covid_metrics <- metric_set(rmse, mase, mae)
 
 Argentina_metrics <- arg_preds %>% 
   covid_metrics(new_cases, estimate = preds)
+  
+Argentina_Arima <- pivot_wider(Argentina_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Argentina",
+    p = results$p[1],
+    q = results$q[1]
+  ) %>% 
+  select(
+    location, p, q, rmse, mase, mae, .estimator
+  )
+Argentina_Arima
 
-Argentina_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard      53510.
-# 2 mase    standard        297.
-# 3 mae     standard      52340.
-
-save(Argentina_metrics, arg_preds, file = "Models/Arima/results/Argentina_metrics.rda")
+save(Argentina_Arima, arg_preds, file = "Models/Arima/results/Argentina_metrics.rda")
 
