@@ -68,7 +68,10 @@ italy_preds <- bind_cols(italy_test, preds) %>%
 
 ggplot(italy_preds) +
   geom_line(aes(x = date, y = new_cases), color = "blue") +
-  geom_line(aes(x = date, y = preds), color = "red")
+  geom_line(aes(x = date, y = preds), color = "red") +
+  labs(y = "New Cases", x = NULL, title = "New COVID-19 Cases in Italy") +
+  scale_x_date(labels = date_format("%m-%Y")) +
+  theme_minimal()
 
 # error metrics
 MAPE(y_pred = italy_preds$new_cases, y_true = italy_preds$preds)

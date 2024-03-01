@@ -57,7 +57,8 @@ for (i in our_countries){
   preds <- predict(fit, n.ahead = 42)$pred
   
   country_preds <- bind_cols(country_test, preds) %>% 
-    rename("preds" = "...3")
+    rename("preds" = "...3") %>% 
+    mutate(preds = ifelse(preds < 0, 0, preds))
   
   # Root Mean Squared Error and Mean Absolute Scaled Error
   rmse <- rmse_vec(truth = country_preds$new_cases, estimate = country_preds$preds)

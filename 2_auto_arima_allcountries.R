@@ -54,7 +54,8 @@ for (i in our_countries) {
   autoA_preds <- predict(autoA_fit, n.ahead = 42)$pred
   
   country_autoA_preds <- bind_cols(country_test, autoA_preds) %>% 
-    rename("preds" = "...3")
+    rename("preds" = "...3") %>% 
+    mutate(preds = ifelse(preds < 0, 0, preds))
   
   # test statistics
   mape <- round(MAPE(y_pred = country_autoA_preds$new_cases, y_true = country_autoA_preds$preds), 4)

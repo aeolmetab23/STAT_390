@@ -29,14 +29,14 @@ italy_test <- split_italy$test
 
 # plotting ACF and PACF
 italy_train %>% 
-  feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
+  feasts::gg_tsdisplay(y = new_cases, plot_type = "partial") +
 
 
 # removing dates - making data univariate
 italy.ts_train <- as.ts(italy_train$new_cases)
 
 italy.ts_train %>% 
-  ggtsdisplay(main = "")
+  ggtsdisplay(main = "", theme = theme_minimal())
 
 fit <- Arima(italy.ts_train, order=c(4,1,4))
 checkresiduals(fit)

@@ -50,7 +50,8 @@ for (i in our_countries) {
     tail(n = 42)
   
   country_pro_preds <- bind_cols(country_test, country_future_preds) %>% 
-    rename(preds = yhat)
+    rename(preds = yhat) %>% 
+    mutate(preds = ifelse(preds < 0, 0, preds))
   
   # test statistics
   rmse <- rmse_vec(truth = country_pro_preds$new_cases, estimate = country_pro_preds$preds)

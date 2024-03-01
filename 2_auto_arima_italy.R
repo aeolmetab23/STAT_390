@@ -21,8 +21,8 @@ italy <- as_tsibble(
   index = date
 )
 
-# splitting the data - 70% split
-split_italy <- ts_split(ts.obj = italy, sample.out = 63)
+# splitting the data - 80% split
+split_italy <- ts_split(ts.obj = italy, sample.out = 42)
 
 italy_train <- split_italy$train
 italy_test <- split_italy$test
@@ -35,7 +35,7 @@ autoA_fit <- auto.arima(italy.ts_train)
 autoA_fit
 autoA_fit$arma
 
-autoA_preds <- predict(autoA_fit, n.ahead = 63)$pred
+autoA_preds <- predict(autoA_fit, n.ahead = 42)$pred
 
 italy_autoA_preds <- bind_cols(italy_test, autoA_preds) %>% 
   rename("preds" = "...3")
