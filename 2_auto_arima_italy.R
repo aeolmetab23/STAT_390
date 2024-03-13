@@ -3,6 +3,11 @@ library(forecast)
 library(TSstudio)
 library(tsibble)
 library(fpp3)
+library(caret)
+library(TSPred)
+library(yardstick)
+library(MLmetrics)
+library(forecastHybrid)
 
 
 ######################### DATA LOADING
@@ -14,6 +19,7 @@ for (i in our_countries) {
   country_data[[i]] <- read.csv(file = paste0("data/my_country_data/", i, "_uni.csv"))
 }
 
+
 # Italy
 italy <- as_tsibble(
   as_tibble(country_data[["Italy"]]) %>% 
@@ -21,8 +27,12 @@ italy <- as_tsibble(
   index = date
 )
 
+# reducing data
+italy <- italy %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
+
 # splitting the data - 80% split
-split_italy <- ts_split(ts.obj = italy, sample.out = 42)
+split_italy <- ts_split(ts.obj = italy, sample.out = 35)
 
 italy_train <- split_italy$train
 italy_test <- split_italy$test
@@ -35,7 +45,7 @@ autoA_fit <- auto.arima(italy.ts_train)
 autoA_fit
 autoA_fit$arma
 
-autoA_preds <- predict(autoA_fit, n.ahead = 42)$pred
+autoA_preds <- predict(autoA_fit, n.ahead = 35)$pred
 
 italy_autoA_preds <- bind_cols(italy_test, autoA_preds) %>% 
   rename("preds" = "...3")

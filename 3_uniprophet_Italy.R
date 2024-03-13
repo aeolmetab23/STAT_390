@@ -18,8 +18,12 @@ italy <- as_tsibble(
   index = date
 )
 
-# splitting the data - 70% split
-split_italy <- ts_split(ts.obj = italy, sample.out = 63)
+# reducing data
+italy <- italy %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
+
+# splitting the data - 80% split
+split_italy <- ts_split(ts.obj = italy, sample.out = 35)
 
 italy_train <- split_italy$train
 italy_test <- split_italy$test
@@ -27,30 +31,154 @@ italy_test <- split_italy$test
 
 ######################### MODELING
 italy_train_prophet <- italy_train %>% 
-  rename("ds" = date, "y" = new_cases)
+  rename("ds" = date, "y" = new_cases) 
 
 pro_fit <- prophet(italy_train_prophet)
+pro_fit <- prophet(italy_train_prophet, 
+                   growth = "flat", 
+                   yearly.seasonality = TRUE,
+                   )
 
-italy_future <- make_future_dataframe(pro_fit, period = 63, freq = "week")
+prophet_results <- tibble(num = c(), range = c(), mae = c())
+changepointsnum <- seq(0, 10, 1)
+changepoint.range <- seq(.6,.9,.1)
+for (j in changepoint.range){
+  for (i in changepointsnum) {
+    pro_fit <- prophet(italy_train_prophet, 
+                       n.changepoints = i,
+                       changepoint.range = j)
+    italy_future <- make_future_dataframe(pro_fit, period = 35, freq = "week")
+    forecast <- predict(pro_fit, italy_future)
+    italy_future_preds <- forecast %>% 
+      select(yhat) %>% 
+      tail(n = 35)
+    italy_pro_preds <- bind_cols(italy_test, italy_future_preds) %>% 
+      rename(preds = yhat)  %>% 
+      mutate(preds = ifelse(preds < 0, 0, preds))
+    mae <- mae_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
+    prophet_results <- prophet_results %>% 
+      bind_rows(tibble(num = i, range = j, mae = mae))
+  }
+}
+
+pro_fit <- prophet(italy_train_prophet, n.changepoints = 2, changepoint.range = .6)
+
+pro_fit_cv <- cross_validation(pro_fit, horizon = 8*7, units = "days", period = 16*7 ,initial = 32*7)
+
+italy_future <- make_future_dataframe(pro_fit, period = 35, freq = "week")
 forecast <- predict(pro_fit, italy_future)
 plot(pro_fit, forecast)
+plot(pro_fit, forecast, xlab="Week", ylab="New Cases") +
+  add_changepoints_to_plot(pro_fit)
+pro_fit$changepoints
+
 
 italy_future_preds <- forecast %>% 
   select(yhat) %>% 
-  tail(n = 63)
+  tail(n = 35)
 
 italy_pro_preds <- bind_cols(italy_test, italy_future_preds) %>% 
-  rename(preds = yhat)
+  rename(preds = yhat)  %>% 
+  mutate(preds = ifelse(preds < 0, 0, preds))
 
 ggplot(italy_pro_preds) +
   geom_line(aes(x = date, y = new_cases), color = "blue") +
   geom_line(aes(x = date, y = preds), color = "red")
 
-# Mean Absolute Percent Error and Mean Absolute Scaled Error
-MAPE(y_pred = italy_pro_preds$new_cases, y_true = italy_pro_preds$preds)
+########### with cv - junk
+pro_fit_cv <- cross_validation(pro_fit, horizon = 8*7, units = "days", period = 16*7 ,initial = 32*7)
+beteter <- fit.prophet(pro_fit_cv, italy_train_prophet)
+
+italy_future <- make_future_dataframe(pro_fit_cv, period = 35, freq = "week")
+forecast_cv <- predict(pro_fit_cv, italy_future)
+plot(pro_fit_cv, forecast_cv)
+plot(pro_fit_cv, forecast_cv, xlab="Week", ylab="New Cases") +
+  add_changepoints_to_plot(pro_fit_cv)
+pro_fit$changepoints
+
+
+italy_future_preds <- forecast %>% 
+  select(yhat) %>% 
+  tail(n = 35)
+
+italy_pro_preds <- bind_cols(italy_test, italy_future_preds) %>% 
+  rename(preds = yhat)  %>% 
+  mutate(preds = ifelse(preds < 0, 0, preds))
+
+ggplot(italy_pro_preds) +
+  geom_line(aes(x = date, y = new_cases), color = "blue") +
+  geom_line(aes(x = date, y = preds), color = "red")
+
+# Mean Absolute Scaled Error
 mase_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
 mae_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
 
+#plotting
+plot(pro_fit, forecast)
+dyplot.prophet(pro_fit, forecast, uncertainty = TRUE)
+# components of model
+prophet_plot_components(
+  pro_fit,
+  forecast,
+  uncertainty = TRUE,
+  plot_cap = TRUE,
+  yearly_start = 0,
+  render_plot = TRUE
+)
+
+
+
+###### cv attempt 2
+prophet_results <- tibble(cps = c(), sps = c(), mae = c())
+cpss <- c(.002, .005, .007, .1)
+spss <- c(.1, 1, 3, 6, 10)
+for (j in cpss){
+  for (i in spss) {
+    pro_fit <- prophet(italy_train_prophet, 
+                       changepoint.prior.scale = j,
+                       seasonality.prior.scale = i)
+    italy_cv <- cross_validation(pro_fit, horizon = 70, units = "days")
+    mae <- mae_vec(truth = italy_cv$y, estimate = italy_cv$yhat)
+    prophet_results <- prophet_results %>% 
+      bind_rows(tibble(cps = j, sps = i, mae = mae))
+  }
+}
+
+best <- prophet_results %>% 
+  arrange(mae) %>% 
+  slice_head(n = 1)
+
+best %>% select(cps) %>% pull
+best %>% select(sps) %>% pull
+
+
+# with winning parameters
+pro_fit_best <- prophet(italy_train_prophet, 
+                        changepoint.prior.scale = .005, 
+                        seasonality.prior.scale = 1)
+
+italy_future <- make_future_dataframe(pro_fit_best, period = 35, freq = "week")
+forecast <- predict(pro_fit_best, italy_future)
+plot(pro_fit_best, forecast)
+plot(pro_fit_best, forecast, xlab="Week", ylab="New Cases") +
+  add_changepoints_to_plot(pro_fit_best)
+pro_fit_best$changepoints
+
+italy_future_preds <- forecast %>% 
+  select(yhat) %>% 
+  tail(n = 35)
+
+italy_pro_preds <- bind_cols(italy_test, italy_future_preds) %>% 
+  rename(preds = yhat)  %>% 
+  mutate(preds = ifelse(preds < 0, 0, preds))
+
+ggplot(italy_pro_preds) +
+  geom_line(aes(x = date, y = new_cases), color = "blue") +
+  geom_line(aes(x = date, y = preds), color = "red")
+
+# Mean Absolute Scaled Error
+mase_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
+mae_vec(truth = italy_pro_preds$new_cases, estimate = italy_pro_preds$preds)
 
 
 ########################################## Uniprophet Malaysia

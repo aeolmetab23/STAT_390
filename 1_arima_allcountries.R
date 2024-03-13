@@ -18,7 +18,7 @@ for (i in our_countries) {
 
 
 # set up results table
-arima_results <- tibble(country = c(), p = c(), q = c(), rmse = c(), mae = c(), mase = c(), mape = c())
+arima_results3 <- tibble(country = c(), p = c(), q = c(), rmse = c(), mae = c(), mase = c())
 
 for (i in our_countries){
   country <- as_tsibble(
@@ -27,8 +27,12 @@ for (i in our_countries){
     index = date
   )
   
+  # reducing data
+  country <- country %>% 
+    filter(date >= "2020-03-01", date < "2023-07-02")
+  
   # splitting - 80% split
-  split <- ts_split(ts.obj = country, sample.out = 42)
+  split <- ts_split(ts.obj = country, sample.out = 35)
   country_train <- split$train
   country_test <- split$test
   
@@ -37,24 +41,28 @@ for (i in our_countries){
   ################### grid search
   ps <- seq(0:4)
   qs <- seq(0:4)
-  country_results <- tibble(p = c(), q = c(), aic = c())
+  ds <- seq(0:2)
+  country_results <- tibble(p = c(), d = c(), q = c(), aic = c())
   
   for (p in ps) {
     for (q in qs) {
-      fit <- Arima(country.ts_train, order = c(p,1,q), method = "ML")
-      aic <- fit$aic
-      country_results <- bind_rows(country_results, tibble(p = p, q = q, aic = aic)) %>% 
-        arrange(aic)
+      for (d in ds) {
+        fit <- Arima(country.ts_train, order = c(p,d,q), method = "CSS")
+        aic <- fit$aic
+        country_results <- bind_rows(country_results, tibble(p = p, d = d, q = q, aic = aic)) %>% 
+          arrange(aic)
+      }
     }
   }
   
   p_best <- country_results$p[1]
+  d_best <- country_results$d[1]
   q_best <- country_results$q[1]
   
   # running model with best result from grid search
-  fit <- Arima(country.ts_train, order=c(p_best,1,q_best), method = "ML")
+  fit <- Arima(country.ts_train, order=c(p_best,d_best,q_best), method = "ML")
   
-  preds <- predict(fit, n.ahead = 42)$pred
+  preds <- predict(fit, n.ahead = 35)$pred
   
   country_preds <- bind_cols(country_test, preds) %>% 
     rename("preds" = "...3") %>% 
@@ -63,14 +71,13 @@ for (i in our_countries){
   # Root Mean Squared Error and Mean Absolute Scaled Error
   rmse <- rmse_vec(truth = country_preds$new_cases, estimate = country_preds$preds)
   mase <- mase_vec(truth = country_preds$new_cases, estimate = country_preds$preds)
-  mape <- round(MAPE(y_pred = country_preds$new_cases, y_true = country_preds$preds), 6)
   mae <- mae_vec(truth = country_preds$new_cases, estimate = country_preds$preds)
   
   # save out results
-  arima_results <- arima_results %>% 
-    bind_rows(tibble(country = i, p = p_best, q = q_best, rmse = rmse, mae = mae, mase = mase, mape = mape))
-  save(arima_results, file = "results/arima_results.rda")
+  arima_results3 <- arima_results3 %>% 
+    bind_rows(tibble(country = i, p = p_best, d = d_best, q = q_best, rmse = rmse, mae = mae, mase = mase))
+  save(arima_results3, file = "results/arima_results3.rda")
 }
 
-load("results/arima_results.rda")
+load("results/arima_results3.rda")
 

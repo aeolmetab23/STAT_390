@@ -6,6 +6,7 @@ library(fpp3)
 library(TSPred)
 library(yardstick)
 library(MLmetrics)
+library(scales)
 
 ######################### DATA LOADING
 our_countries <- c("Italy", "Mexico", "India", "Australia", "Argentina", 
@@ -21,15 +22,19 @@ italy <- as_tsibble(
   index = date
 )
  
-# splitting the data - 80% split - 42 in test set
-split_italy <- ts_split(ts.obj = italy, sample.out = 42)
+# reducing data
+italy <- italy %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
+
+# splitting the data - 80% split - 35 in test set
+split_italy <- ts_split(ts.obj = italy, sample.out = 35)
 
 italy_train <- split_italy$train
 italy_test <- split_italy$test
 
 # plotting ACF and PACF
 italy_train %>% 
-  feasts::gg_tsdisplay(y = new_cases, plot_type = "partial") +
+  feasts::gg_tsdisplay(y = new_cases, plot_type = "partial")
 
 
 # removing dates - making data univariate
@@ -72,7 +77,7 @@ fit %>% forecast() %>% autoplot()
 fc_Arima <- forecast(fit, 52)
 autoplot(fc_Arima)
 
-preds <- predict(fit, n.ahead = 42)$pred
+preds <- predict(fit, n.ahead = 35)$pred
 
 italy_preds <- bind_cols(italy_test, preds) %>% 
   rename("preds" = "...3")
@@ -104,6 +109,18 @@ rmse_vec(truth = italy_preds$new_cases, estimate = italy_preds$preds)
 
 
 
+###################### With Cross Validation
+
+
+#Fit an AR(2) model to each rolling origin subset
+arima_func <- function(x, h){forecast(Arima(x, order=c(4,1,4)), h=h)}
+cvfit <- tsCV(italy_train, arima_func, h=1, window=10)
+
+
+
+
+
+
 
 ###################################### Examining Morocco
 morocco <- as_tsibble(
@@ -111,17 +128,74 @@ morocco <- as_tsibble(
     mutate(date = lubridate::ymd(date)),
   index = date
 )
+# reducing data
+morocco <- morocco %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
 # splitting the data - 80% split
-split_morocco <- ts_split(ts.obj = morocco, sample.out = 42)
+split_morocco <- ts_split(ts.obj = morocco, sample.out = 35)
 morocco_train <- split_morocco$train
 morocco_test <- split_morocco$test
 # removing dates - making data univariate
 morocco.ts_train <- as.ts(morocco_train$new_cases)
-fit <- Arima(morocco.ts_train, order=c(2,1,3))
-preds <- predict(fit, n.ahead = 42)$pred
+fit <- Arima(morocco.ts_train, order=c(1,1,1), method = "CSS")
+preds <- predict(fit, n.ahead = 35)$pred
 morocco_preds <- bind_cols(morocco_test, preds) %>% 
   rename("preds" = "...3")
-ggplot(morocco_preds) +
+colors <- c("new_cases" = "blue", "preds" = "red")
+ggplot(morocco_preds, aes(x = date)) +
+  geom_line(aes(y = new_cases, color = "new_cases")) +
+  geom_line(aes(y = preds, color = "preds")) +
+  scale_y_continuous(label = comma) +
+  scale_color_manual(labels = c("New Cases", "Predictions"), values = colors) +
+  labs(x = NULL, y = "New Cases", title = "New Cases in Morocco") +
+  theme_minimal() +
+  theme(legend.title = element_blank(),
+        legend.position = c(.72,.91),
+        panel.grid.major = element_blank())
+
+###################################### Examining India
+india <- as_tsibble(
+  as_tibble(country_data[["India"]]) %>% 
+    mutate(date = lubridate::ymd(date)),
+  index = date
+)
+# reducing data
+india <- india %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
+# splitting the data - 80% split
+split_india <- ts_split(ts.obj = india, sample.out = 35)
+india_train <- split_india$train
+india_test <- split_india$test
+# removing dates - making data univariate
+india.ts_train <- as.ts(india_train$new_cases)
+fit <- Arima(india.ts_train, order=c(1,1,1), method = "CSS")
+preds <- predict(fit, n.ahead = 35)$pred
+india_preds <- bind_cols(india_test, preds) %>% 
+  rename("preds" = "...3")
+ggplot(india_preds) +
+  geom_line(aes(x = date, y = new_cases), color = "blue") +
+  geom_line(aes(x = date, y = preds), color = "red")
+
+###################################### Examining Peru
+peru <- as_tsibble(
+  as_tibble(country_data[["Peru"]]) %>% 
+    mutate(date = lubridate::ymd(date)),
+  index = date
+)
+# reducing data
+peru <- peru %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
+# splitting the data - 80% split
+split_peru <- ts_split(ts.obj = peru, sample.out = 35)
+peru_train <- split_peru$train
+peru_test <- split_peru$test
+# removing dates - making data univariate
+peru.ts_train <- as.ts(india_train$new_cases)
+fit <- Arima(peru.ts_train, order=c(1,1,1), method = "CSS")
+preds <- predict(fit, n.ahead = 35)$pred
+peru_preds <- bind_cols(peru_test, preds) %>% 
+  rename("preds" = "...3")
+ggplot(peru_preds) +
   geom_line(aes(x = date, y = new_cases), color = "blue") +
   geom_line(aes(x = date, y = preds), color = "red")
 
@@ -131,19 +205,24 @@ malaysia <- as_tsibble(
     mutate(date = lubridate::ymd(date)),
   index = date
 )
+# reducing data
+malaysia <- malaysia %>% 
+  filter(date >= "2020-03-01", date < "2023-07-02")
 # splitting the data - 80% split
-split_malaysia <- ts_split(ts.obj = malaysia, sample.out = 42)
+split_malaysia <- ts_split(ts.obj = malaysia, sample.out = 35)
 malaysia_train <- split_malaysia$train
 malaysia_test <- split_malaysia$test
 # removing dates - making data univariate
 malaysia.ts_train <- as.ts(malaysia_train$new_cases)
-fit <- Arima(malaysia.ts_train, order=c(4,1,3))
-preds <- predict(fit, n.ahead = 42)$pred
+fit <- Arima(malaysia.ts_train, order=c(1,1,1))
+preds <- predict(fit, n.ahead = 35)$pred
 malaysia_preds <- bind_cols(malaysia_test, preds) %>% 
   rename("preds" = "...3")
 ggplot(malaysia_preds) +
   geom_line(aes(x = date, y = new_cases), color = "blue") +
   geom_line(aes(x = date, y = preds), color = "red")
+
+
 
 
 

@@ -11,6 +11,7 @@ ggplot(mdata, aes(x = month, y = new_cases)) +
 ggplot(mdata, aes(x = week, y = new_cases)) + 
   geom_col(fill="purple") +
   ggtitle("New Cases by Week") +
+  labs(x = "Week", y = "New Cases") +
   theme_minimal()
 
 #china data

@@ -31,12 +31,12 @@ data_big_test <- data_big_test %>%
                                      gdp_per_capita + aged_65_older + median_age + population_density +
                                      stringency_index)$icu_patients) %>%
   mutate(stringency_index = impute_knn(data_big_test,
-                                   column = "stringency_index",
-                                   formula = stringency_index ~ new_cases_1week_lag +
-                                     population + human_development_index + life_expectancy +
-                                     handwashing_facilities + diabetes_prevalence + cardiovasc_death_rate +
-                                     gdp_per_capita + aged_65_older + median_age +
-                                     population_density)$stringency_index)
+                                       column = "stringency_index",
+                                       formula = stringency_index ~ new_cases_1week_lag +
+                                         population + human_development_index + life_expectancy +
+                                         handwashing_facilities + diabetes_prevalence + cardiovasc_death_rate +
+                                         gdp_per_capita + aged_65_older + median_age +
+                                         population_density)$stringency_index)
 
 data_big_train <- data_big %>%
   filter(ds < "2022-10-30") 
@@ -62,9 +62,9 @@ data_big <- bind_rows(data_big_train, data_big_test)
 our_countries <- c("Italy", "Mexico", "India", "Australia", "Argentina",
                    "United Kingdom", "Malaysia", "Morocco", "Sweden", "Peru")
 
-prophet_mp_fits <- c()
-components <- c()
-prophet_mp_results2 <- tibble(country = c(), rmse = c(), mae = c(), mase = c())
+prophet_mp_fits3 <- c()
+components3 <- c()
+prophet_mp_results3 <- tibble(country = c(), rmse = c(), mae = c(), mase = c())
 # main loop
 for (i in our_countries) {
   # get country data
@@ -92,6 +92,9 @@ for (i in our_countries) {
   mpfit_country = add_regressor(mpfit_country,"new_cases_2week_lag", standardize = FALSE)
   mpfit_country = add_regressor(mpfit_country,'icu_patients', standardize = FALSE)
   mpfit_country = add_regressor(mpfit_country,'stringency_index', standardize = FALSE)
+  mpfit_country = add_regressor(mpfit_country,"new_cases_1week_lag", standardize = FALSE)
+  mpfit_country = add_regressor(mpfit_country,"new_cases_6week_roll", standardize = FALSE)
+  mpfit_country = add_regressor(mpfit_country,"new_cases_12week_roll", standardize = FALSE)
   
   # model fitting with training data
   mpfit_country = fit.prophet(mpfit_country, df = country_big_train)
@@ -104,6 +107,9 @@ for (i in our_countries) {
   future_country$new_cases_2week_lag = head(country$new_cases_2week_lag ,nrow(future_country))
   future_country$icu_patients = head(country$icu_patients, nrow(future_country))
   future_country$stringency_index = head(country$stringency_index, nrow(future_country))
+  future_country$new_cases_1week_lag = head(country$new_cases_1week_lag, nrow(future_country))
+  future_country$new_cases_6week_roll = head(country$new_cases_6week_roll, nrow(future_country))
+  future_country$new_cases_12week_roll = head(country$new_cases_12week_roll, nrow(future_country))
   
   ####### forecasting
   mp_forecast <- predict(mpfit_country, future_country)
@@ -121,7 +127,7 @@ for (i in our_countries) {
   rmse <- rmse_vec(truth = country_mp_preds$y, estimate = country_mp_preds$preds)
   mase <- mase_vec(truth = country_mp_preds$y, estimate = country_mp_preds$preds)
   mae <- mae_vec(truth = country_mp_preds$y, estimate = country_mp_preds$preds)
-
+  
   # components of model
   country_components <- prophet_plot_components(
     mpfit_country,
@@ -134,15 +140,15 @@ for (i in our_countries) {
   
   
   # save out results
-  prophet_mp_results2 <- prophet_mp_results2 %>% 
+  prophet_mp_results3 <- prophet_mp_results3 %>% 
     bind_rows(tibble(country = i, rmse = rmse, mae = mae, mase = mase))
-  prophet_mp_fits <- c(prophet_mp_fits, mpfit_country)
-  components <- c(components, country_components)
+  prophet_mp_fits3 <- c(prophet_mp_fits3, mpfit_country)
+  components3 <- c(components3, country_components)
   
-  save(prophet_mp_results2, prophet_mp_fits, components, file = "results/prophet2_mp.rda")
+  save(prophet_mp_results3, prophet_mp_fits3, components3, file = "results/prophet3_mp.rda")
   
 }
 
-load("results/prophet2_mp.rda")
+load("results/prophet3_mp.rda")
 
-components[[28]]
+#components[[28]]
