@@ -53,10 +53,10 @@ Italy_fit
 
 preds <- predict(Italy_fit, n.ahead = 42)$pred
 
-Italy_preds <- bind_cols(test, preds) %>% 
+Italy_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(Italy_preds) +
+ggplot(Italy_Auto_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "red4", linewidth = 2) +
   theme_minimal() +
@@ -70,12 +70,12 @@ ggplot(Italy_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Italy_metrics <- Italy_preds %>% 
+Italy_metrics <- Italy_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Italy_fit # order = c(1, 0, 3)
 
-italy_Auto_Arima <- pivot_wider(Italy_metrics, names_from = .metric, values_from = .estimate) %>% 
+Italy_Auto_Arima <- pivot_wider(Italy_metrics, names_from = .metric, values_from = .estimate) %>% 
   mutate(
     location = "Italy",
     p = 3,
@@ -84,6 +84,6 @@ italy_Auto_Arima <- pivot_wider(Italy_metrics, names_from = .metric, values_from
   select(
     location, p, q, rmse, mase, mae, .estimator
   )
-italy_Auto_Arima
+Italy_Auto_Arima
 
-save(italy_Auto_Arima, Italy_preds, file = "Models/Auto Arima/results/Italy_metrics.rda")
+save(Italy_Auto_Arima, Italy_Auto_Arima_Preds, file = "Models/Auto Arima/results/Italy_metrics.rda")

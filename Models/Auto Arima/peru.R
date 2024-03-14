@@ -53,12 +53,12 @@ Peru_fit # order = c(1, 0, 3)
 
 preds <- predict(Peru_fit, n.ahead = 42)$pred
 
-Peru_preds <- bind_cols(test, preds) %>% 
+Peru_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(Peru_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
+ggplot(Peru_Auto_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -70,7 +70,7 @@ ggplot(Peru_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Peru_metrics <- Peru_preds %>% 
+Peru_metrics <- Peru_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Peru_fit # order = c(0, 1, 4)
@@ -86,4 +86,4 @@ Peru_Auto_Arima <- pivot_wider(Peru_metrics, names_from = .metric, values_from =
   )
 Peru_Auto_Arima
 
-save(Peru_Auto_Arima, Peru_preds, file = "Models/Auto Arima/results/Peru_metrics.rda")
+save(Peru_Auto_Arima, Peru_Auto_Arima_Preds, file = "Models/Auto Arima/results/Peru_metrics.rda")

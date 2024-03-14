@@ -53,10 +53,10 @@ Mexico_fit # order = c(1, 0, 3)
 
 preds <- predict(Mexico_fit, n.ahead = 42)$pred
 
-Mexico_preds <- bind_cols(test, preds) %>% 
+Mexico_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(Mexico_preds) +
+ggplot(Mexico_Auto_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
   theme_minimal() +
@@ -70,7 +70,7 @@ ggplot(Mexico_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Mexico_metrics <- Mexico_preds %>% 
+Mexico_metrics <- Mexico_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Mexico_fit # order = c(3, 1, 1)
@@ -86,4 +86,4 @@ Mexico_Auto_Arima <- pivot_wider(Mexico_metrics, names_from = .metric, values_fr
   )
 Mexico_Auto_Arima
 
-save(Mexico_Auto_Arima, Mexico_preds, file = "Models/Auto Arima/results/Mexico_metrics.rda")
+save(Mexico_Auto_Arima, Mexico_Auto_Arima_Preds, file = "Models/Auto Arima/results/Mexico_metrics.rda")

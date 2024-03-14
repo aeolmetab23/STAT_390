@@ -32,7 +32,10 @@ india <- read_csv(here::here("Models/model_data/uni_v2/India_uni.csv"))
 
 # Mutate Columns
 india <- india %>% 
-  mutate(date = ymd(date)) %>% 
+  mutate(
+    date = ymd(date),
+    new_cases_log = log(new_cases + 1)
+  ) %>% 
   arrange(date)
 
 # Convert to Time Series Tibble
@@ -44,7 +47,7 @@ train <- training(splits)
 test <- testing(splits)
 
 # removing dates - making data univariate
-train_ts <- as.ts(train$new_cases)
+train_ts <- as.ts(train$new_cases_log)
 
 # Run Model
 india_fit <- auto.arima(train_ts, d = 1)
@@ -53,12 +56,15 @@ india_fit # order = c(1, 0, 3)
 
 preds <- predict(india_fit, n.ahead = 42)$pred
 
-india_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
-  rename("preds" = "...3")
+india_preds <- bind_cols(test, preds) %>% 
+  rename("preds" = "...4") %>% 
+  mutate(
+    pred = exp(preds) - 1
+  )
 
-ggplot(india_Auto_Arima_Preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(india_preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = pred), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -70,8 +76,8 @@ ggplot(india_Auto_Arima_Preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-india_metrics <- india_Auto_Arima_Preds %>% 
-  covid_metrics(new_cases, estimate = preds)
+india_metrics <- india_preds %>% 
+  covid_metrics(new_cases, estimate = pred)
 
 india_fit # order = c(1, 0, 3)
 
@@ -79,19 +85,19 @@ india_Auto_Arima <- pivot_wider(india_metrics, names_from = .metric, values_from
   mutate(
     location = "India",
     p = 0,
-    q = 4,
+    q = 5,
   ) %>% 
   select(
     location, p, q, rmse, mase, mae, .estimator
   )
 india_Auto_Arima
 
-save(india_Auto_Arima, india_Auto_Arima_Preds, file = "Models/Auto Arima/results/India_metrics.rda")
+# save(india_Auto_Arima, india_preds, file = "Models/Auto Arima/results/India_metrics.rda")
 
 colors <- c("Predicted" = "skyblue3", "Actual" = "indianred")
 
-ggplot(india_Auto_Arima_Preds) +
-  geom_line(mapping = aes(date, preds, color = "Predicted"), linewidth = 1) +
+ggplot(india_preds) +
+  geom_line(mapping = aes(date, pred, color = "Predicted"), linewidth = 1) +
   geom_line(mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
   theme_minimal() +
   labs(x = "Date",

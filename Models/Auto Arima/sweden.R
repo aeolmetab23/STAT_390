@@ -53,10 +53,10 @@ Sweden_fit # order = c(2, 1, 1)
 
 preds <- predict(Sweden_fit, n.ahead = 42)$pred
 
-Sweden_preds <- bind_cols(test, preds) %>% 
+Sweden_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(Sweden_preds) +
+ggplot(Sweden_Auto_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
   theme_minimal() +
@@ -70,7 +70,7 @@ ggplot(Sweden_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Sweden_metrics <- Sweden_preds %>% 
+Sweden_metrics <- Sweden_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Sweden_fit # order = c(0, 1, 4)
@@ -86,4 +86,25 @@ Sweden_Auto_Arima <- pivot_wider(Sweden_metrics, names_from = .metric, values_fr
   )
 Sweden_Auto_Arima
 
-save(Sweden_Auto_Arima, Sweden_preds, file = "Models/Auto Arima/results/Sweden_metrics.rda")
+save(Sweden_Auto_Arima, Sweden_Auto_Arima_Preds, file = "Models/Auto Arima/results/Sweden_metrics.rda")
+
+# ggplot(Malaysia_preds) +
+#   geom_line(mapping = aes(date, preds, color = "Predicted"), linewidth = 1) +
+#   geom_line(mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
+#   theme_minimal() +
+#   labs(x = "Date",
+#        y = "New Cases",
+#        color = "",
+#        title = "New Cases for Malaysia") +
+#   theme(legend.position = "bottom") +
+#   scale_color_manual(values = colors)
+# 
+# ggplot(Malaysia_preds) +
+#   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+#   geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 1) +
+#   theme_minimal() +
+#   labs(
+#     x = "Date",
+#     y = "New Cases",
+#     title = "New Cases for Malaysia"
+#   )

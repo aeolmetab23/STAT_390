@@ -53,10 +53,10 @@ Morocco_fit # order = c(0, 1, 2)
 
 preds <- predict(Morocco_fit, n.ahead = 42)$pred
 
-Morocco_preds <- bind_cols(test, preds) %>% 
+Morocco_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(Morocco_preds) +
+ggplot(Morocco_Auto_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
   theme_minimal() +
@@ -70,7 +70,7 @@ ggplot(Morocco_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Morocco_metrics <- Morocco_preds %>% 
+Morocco_metrics <- Morocco_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Morocco_fit # order = c(3, 1, 1)
@@ -86,4 +86,15 @@ Morocco_Auto_Arima <- pivot_wider(Morocco_metrics, names_from = .metric, values_
   )
 Morocco_Auto_Arima
 
-save(Morocco_Auto_Arima, Morocco_preds, file = "Models/Auto Arima/results/Morocco_metrics.rda")
+save(Morocco_Auto_Arima, Morocco_Auto_Arima_Preds, file = "Models/Auto Arima/results/Morocco_metrics.rda")
+
+# ggplot(Morocco_Auto_Arima_Preds) +
+#   geom_line(mapping = aes(date, preds, color = "Predicted"), linewidth = 1) +
+#   geom_line(mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
+#   theme_minimal() +
+#   labs(x = "Date",
+#        y = "New Cases",
+#        color = "",
+#        title = "New Cases for Morocco") +
+#   theme(legend.position = "bottom") +
+#   scale_color_manual(values = colors)

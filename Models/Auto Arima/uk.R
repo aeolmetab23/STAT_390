@@ -53,10 +53,10 @@ UK_fit # order = c(1, 0, 3)
 
 preds <- predict(UK_fit, n.ahead = 42)$pred
 
-UK_preds <- bind_cols(test, preds) %>% 
+UK_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(UK_preds) +
+ggplot(UK_Auto_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
   theme_minimal() +
@@ -70,10 +70,10 @@ ggplot(UK_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-UK_metrics <- UK_preds %>% 
+UK_metrics <- UK_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
-UK_fit # order = c(0, 1, 4)
+UK_fit # order = c(0, 1, 1)
 
 UK_Auto_Arima <- pivot_wider(UK_metrics, names_from = .metric, values_from = .estimate) %>% 
   mutate(
@@ -86,4 +86,4 @@ UK_Auto_Arima <- pivot_wider(UK_metrics, names_from = .metric, values_from = .es
   )
 UK_Auto_Arima
 
-save(UK_Auto_Arima, UK_preds, file = "Models/Auto Arima/results/UK_metrics.rda")
+save(UK_Auto_Arima, UK_Auto_Arima_Preds, file = "Models/Auto Arima/results/UK_metrics.rda")

@@ -53,24 +53,23 @@ Malaysia_fit # order = c(1, 0, 3)
 
 preds <- predict(Malaysia_fit, n.ahead = 42)$pred
 
-Malaysia_preds <- bind_cols(test, preds) %>% 
+Malaysia_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(Malaysia_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 2) +
+ggplot(Malaysia_Auto_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "red3", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
     y = "New Cases",
-    title = "Malaysia Auto Arima",
-    subtitle = "Predicited vs. Actual New Cases"
+    title = "New Cases for Malaysia"
   )
 
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Malaysia_metrics <- Malaysia_preds %>% 
+Malaysia_metrics <- Malaysia_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Malaysia_fit # order = c(1, 0, 3)
@@ -86,4 +85,4 @@ Malaysia_Auto_Arima <- pivot_wider(Malaysia_metrics, names_from = .metric, value
   )
 Malaysia_Auto_Arima
 
-save(Malaysia_Auto_Arima, Malaysia_preds, file = "Models/Auto Arima/results/Malaysia_metrics.rda")
+save(Malaysia_Auto_Arima, Malaysia_Auto_Arima_Preds, file = "Models/Auto Arima/results/Malaysia_metrics.rda")

@@ -49,16 +49,16 @@ train_ts <- as.ts(train$new_cases)
 # Run Model
 argentina_fit <- auto.arima(train_ts, d = 1)
 
-argentina_fit # order = c(1, 0, 3)
+argentina_fit # order = c(1, 1, 4)
 
 preds <- predict(argentina_fit, n.ahead = 42)$pred
 
-argentina_preds <- bind_cols(test, preds) %>% 
+Argentina_Auto_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(argentina_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Argentina_Auto_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -70,7 +70,7 @@ ggplot(argentina_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-argentina_metrics <- argentina_preds %>% 
+argentina_metrics <- Argentina_Auto_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 argentina_fit # order = c(1, 0, 3)
@@ -86,4 +86,4 @@ argentina_Auto_Arima <- pivot_wider(argentina_metrics, names_from = .metric, val
   )
 argentina_Auto_Arima
 
-save(argentina_Auto_Arima, argentina_preds, file = "Models/Auto Arima/results/Argentina_metrics.rda")
+save(argentina_Auto_Arima, Argentina_Auto_Arima_Preds, file = "Models/Auto Arima/results/Argentina_metrics.rda")
