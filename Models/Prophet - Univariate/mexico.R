@@ -64,11 +64,14 @@ mex_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-mex_preds <- bind_cols(test, mex_future_preds) %>% 
-  rename(preds = yhat)
+Mexico_Prophet_uni_Preds <- bind_cols(test, mex_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(mex_preds) +
+ggplot(Mexico_Prophet_uni_Preds) +
   geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
   theme_minimal() +
@@ -82,17 +85,10 @@ ggplot(mex_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-mexico_metrics <- mex_preds %>% 
+mexico_metrics <- Mexico_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 mexico_metrics
-# # A tibble: 3 × 3
-# .metric .estimator .estimate
-# <chr>   <chr>          <dbl>
-# 1 rmse    standard     28848. 
-# 2 mase    standard        22.9
-# 3 mae     standard     24268.
-
 
 Mexico_Prophet_uni <- pivot_wider(mexico_metrics, names_from = .metric, values_from = .estimate) %>% 
   mutate(
@@ -103,4 +99,4 @@ Mexico_Prophet_uni <- pivot_wider(mexico_metrics, names_from = .metric, values_f
   )
 Mexico_Prophet_uni
 
-save(Mexico_Prophet_uni, mex_preds, file = "Models/Prophet - Univariate/results/Mexico_metrics.rda")
+save(Mexico_Prophet_uni, Mexico_Prophet_uni_Preds, file = "Models/Prophet - Univariate/results/Mexico_metrics.rda")

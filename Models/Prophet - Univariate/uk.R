@@ -64,13 +64,16 @@ uk_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-uk_preds <- bind_cols(test, uk_future_preds) %>% 
-  rename(preds = yhat)
+UK_Prophet_uni_Preds <- bind_cols(test, uk_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(uk_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(UK_Prophet_uni_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     title = "United Kingdom Forecast",
@@ -82,7 +85,7 @@ ggplot(uk_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-uk_metrics <- uk_preds %>% 
+uk_metrics <- UK_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 uk_metrics
@@ -96,4 +99,4 @@ UK_Prophet_uni <- pivot_wider(uk_metrics, names_from = .metric, values_from = .e
   )
 UK_Prophet_uni
 
-save(UK_Prophet_uni, uk_preds, file = "Models/Prophet - Univariate/results/UK_metrics.rda")
+save(UK_Prophet_uni, UK_Prophet_uni_Preds, file = "Models/Prophet - Univariate/results/UK_metrics.rda")

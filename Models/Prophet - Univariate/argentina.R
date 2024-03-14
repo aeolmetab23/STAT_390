@@ -48,7 +48,7 @@ arg_prophet <- train %>%
   rename("ds" = date, "y" = new_cases)
 
 # Fit Prophet Model ----
-arg_fit <- prophet(arg_prophet, weekly.seasonality=TRUE)
+arg_fit <- prophet(arg_prophet, weekly.seasonality=TRUE, yearly.seasonality=TRUE)
 
 # Make future Dataframe ----
 arg_future <- make_future_dataframe(arg_fit, period = 42, freq = "week")
@@ -64,13 +64,16 @@ arg_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-arg_preds <- bind_cols(test, arg_future_preds) %>% 
-  rename(preds = yhat)
+Argentina_Prophet_uni_Preds <- bind_cols(test, arg_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(arg_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Argentina_Prophet_uni_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     title = "Argentina Forecast",
@@ -82,13 +85,10 @@ ggplot(arg_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-argentina_metrics <- arg_preds %>% 
+argentina_metrics <- Argentina_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 argentina_metrics
-# 1 rmse    standard     54913.  
-# 2 mase    standard       259.
-# 3 mae     standard     45620.  
 
 Argentina_Prophet_uni <- pivot_wider(argentina_metrics, names_from = .metric, values_from = .estimate) %>% 
   mutate(
@@ -99,7 +99,8 @@ Argentina_Prophet_uni <- pivot_wider(argentina_metrics, names_from = .metric, va
   )
 Argentina_Prophet_uni
 
-save(Argentina_Prophet_uni, arg_preds, file = "Models/Prophet - Univariate/results/Argentina_metrics.rda")
+save(Argentina_Prophet_uni, Argentina_Prophet_uni_Preds,
+     file = "Models/Prophet - Univariate/results/Argentina_metrics.rda")
 
 
 

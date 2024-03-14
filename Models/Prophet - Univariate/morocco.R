@@ -64,13 +64,16 @@ mor_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-mor_preds <- bind_cols(test, mor_future_preds) %>% 
-  rename(preds = yhat)
+Morocco_Prophet_uni_Preds <- bind_cols(test, mor_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(mor_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Morocco_Prophet_uni_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     title = "Morocco Forecast",
@@ -82,7 +85,7 @@ ggplot(mor_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-morocco_metrics <- mor_preds %>% 
+morocco_metrics <- Morocco_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 morocco_metrics
@@ -96,4 +99,4 @@ Morocco_Prophet_uni <- pivot_wider(morocco_metrics, names_from = .metric, values
   )
 Morocco_Prophet_uni
 
-save(Morocco_Prophet_uni, mor_preds, file = "Models/Prophet - Univariate/results/Morocco_metrics.rda")
+save(Morocco_Prophet_uni, Morocco_Prophet_uni_Preds, file = "Models/Prophet - Univariate/results/Morocco_metrics.rda")

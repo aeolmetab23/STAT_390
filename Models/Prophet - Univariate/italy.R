@@ -48,7 +48,7 @@ itl_prophet <- train %>%
   rename("ds" = date, "y" = new_cases)
 
 # Fit Prophet Model ----
-itl_fit <- prophet(itl_prophet, weekly.seasonality=TRUE)
+itl_fit <- prophet(itl_prophet, weekly.seasonality=TRUE, yearly.seasonality = TRUE)
 
 # Make future Dataframe ----
 itl_future <- make_future_dataframe(itl_fit, period = 42, freq = "week")
@@ -64,13 +64,16 @@ itl_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-itl_preds <- bind_cols(test, itl_future_preds) %>% 
-  rename(preds = yhat)
+Italy_Prophet_uni_Preds <- bind_cols(test, itl_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(itl_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Italy_Prophet_uni_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     title = "Italy Forecast",
@@ -82,7 +85,7 @@ ggplot(itl_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-italy_metrics <- itl_preds %>% 
+italy_metrics <- Italy_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 italy_metrics
@@ -96,4 +99,5 @@ Italy_Prophet_uni <- pivot_wider(italy_metrics, names_from = .metric, values_fro
   )
 Italy_Prophet_uni
 
-save(Italy_Prophet_uni, itl_preds, file = "Models/Prophet - Univariate/results/Italy_metrics.rda")
+save(Italy_Prophet_uni, Italy_Prophet_uni_Preds, file = "Models/Prophet - Univariate/results/Italy_metrics.rda")
+

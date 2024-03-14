@@ -64,13 +64,16 @@ mal_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-mal_preds <- bind_cols(test, mal_future_preds) %>% 
-  rename(preds = yhat)
+Malaysia_Prophet_uni_Preds <- bind_cols(test, mal_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(mal_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Malaysia_Prophet_uni_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     title = "Malaysia Forecast",
@@ -82,7 +85,7 @@ ggplot(mal_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-malaysia_metrics <- mal_preds %>% 
+malaysia_metrics <- Malaysia_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 malaysia_metrics
@@ -96,4 +99,4 @@ Malaysia_Prophet_uni <- pivot_wider(malaysia_metrics, names_from = .metric, valu
   )
 Malaysia_Prophet_uni
 
-save(Malaysia_Prophet_uni, mal_preds, file = "Models/Prophet - Univariate/results/Malaysia_metrics.rda")
+save(Malaysia_Prophet_uni, Malaysia_Prophet_uni_Preds, file = "Models/Prophet - Univariate/results/Malaysia_metrics.rda")

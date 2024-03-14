@@ -48,7 +48,7 @@ swd_prophet <- train %>%
   rename("ds" = date, "y" = new_cases)
 
 # Fit Prophet Model ----
-swd_fit <- prophet(swd_prophet, weekly.seasonality=TRUE)
+swd_fit <- prophet(swd_prophet, weekly.seasonality=TRUE, yearly.seasonality = TRUE)
 
 # Make future Dataframe ----
 swd_future <- make_future_dataframe(swd_fit, period = 42, freq = "week")
@@ -64,13 +64,16 @@ swd_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-swd_preds <- bind_cols(test, swd_future_preds) %>% 
-  rename(preds = yhat)
+Sweden_Prophet_uni_Preds <- bind_cols(test, swd_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(swd_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Sweden_Prophet_uni_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     title = "Sweden Forecast",
@@ -82,7 +85,7 @@ ggplot(swd_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-sweden_metrics <- swd_preds %>% 
+sweden_metrics <- Sweden_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 sweden_metrics
@@ -96,4 +99,4 @@ Sweden_Prophet_uni <- pivot_wider(sweden_metrics, names_from = .metric, values_f
   )
 Sweden_Prophet_uni
 
-save(Sweden_Prophet_uni, swd_preds, file = "Models/Prophet - Univariate/results/Sweden_metrics.rda")
+save(Sweden_Prophet_uni, Sweden_Prophet_uni_Preds, file = "Models/Prophet - Univariate/results/Sweden_metrics.rda")

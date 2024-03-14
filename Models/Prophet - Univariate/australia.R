@@ -49,7 +49,7 @@ aus_prophet <- train %>%
   rename("ds" = date, "y" = new_cases)
 
 # Fit Prophet Model ----
-aus_fit <- prophet(aus_prophet, weekly.seasonality=TRUE)
+aus_fit <- prophet(aus_prophet, weekly.seasonality=TRUE, yearly.seasonality=TRUE)
 
 # Make future Dataframe ----
 aus_future <- make_future_dataframe(aus_fit, period = 42, freq = "week")
@@ -65,11 +65,14 @@ aus_future_preds <- forecast %>%
   tail(n = 42)
 
 # Bind Results and Test Data
-aus_preds <- bind_cols(test, aus_future_preds) %>% 
-  rename(preds = yhat)
+Australia_Prophet_uni_Preds <- bind_cols(test, aus_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Plot Results ----
-ggplot(aus_preds) +
+ggplot(Australia_Prophet_uni_Preds) +
   geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
   theme_minimal() +
@@ -83,7 +86,7 @@ ggplot(aus_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-australia_metrics <- aus_preds %>% 
+australia_metrics <- Australia_Prophet_uni_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Australia_Prophet_uni <- pivot_wider(australia_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -95,4 +98,5 @@ Australia_Prophet_uni <- pivot_wider(australia_metrics, names_from = .metric, va
   )
 Australia_Prophet_uni
 
-save(Australia_Prophet_uni, aus_preds, file = "Models/Prophet - Univariate/results/Australia_metrics.rda")
+save(Australia_Prophet_uni, Australia_Prophet_uni_Preds,
+     file = "Models/Prophet - Univariate/results/Australia_metrics.rda")
