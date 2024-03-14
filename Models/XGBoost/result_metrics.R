@@ -41,12 +41,16 @@ load("Models/XGBoost/results/model_3.rda")
 load("Models/XGBoost/results/model_4.rda")
 load("Models/XGBoost/results/model_5.rda")
 
+
+# e^(log(y))
+
 # Analysis ----
 model_set <- as_workflow_set(
   "Model 1" = covid_tune_1,
   "Model 2" = covid_tune_2,
   "Model 3" = covid_tune_3,
-  "Model 4" = covid_tune_4
+  "Model 4" = covid_tune_4,
+  "Model 5" = covid_tune_5
   )
   
 ## RMSE
@@ -54,14 +58,13 @@ model_set %>%
   autoplot(metric = "rmse", select_best = TRUE) +
   theme_minimal() +
   geom_text(aes(y = mean - 4500, label = wflow_id), angle = 90, hjust = 1) +
-  ylim(c(15000, 29000)) +
   theme(legend.position = "none")
 
 ## MASE
 model_set %>% 
   autoplot(metric = "mase", select_best = TRUE) +
   theme_minimal() +
-  geom_text(aes(y = mean - 0.02, label = wflow_id), angle = 90, hjust = 1) +
+  geom_text(aes(y = mean - 0.05, label = wflow_id), angle = 90, hjust = 1) +
   ylim(c(0, 0.5)) +
   theme(legend.position = "none")
 
@@ -70,7 +73,6 @@ model_set %>%
   autoplot(metric = "mae", select_best = TRUE) +
   theme_minimal() +
   geom_text(aes(y = mean - 300, label = wflow_id), angle = 90, hjust = 1) +
-  ylim(c(3000, 4000)) +
   theme(legend.position = "none")
 
 
@@ -85,15 +87,23 @@ model_results <- model_set %>%
 model_times <- bind_rows(bt_tictoc_1,
                          bt_tictoc_2,
                          bt_tictoc_3,
-                         bt_tictoc_4) %>% 
+                         bt_tictoc_4,
+                         bt_tictoc_5) %>% 
   mutate(wflow_id = c("Model 1",
                       "Model 2",
                       "Model 3",
-                      "Model 4"))
+                      "Model 4",
+                      "Model 5"))
 
 result_table <- merge(model_results, model_times) %>% 
   select(model, wflow_id, mean, runtime) %>% 
   rename(rmse = mean) %>% 
+  mutate(
+    rmse = case_when(
+      wflow_id == "Model 5" ~ exp(rmse),
+      TRUE ~ rmse
+    )
+  ) %>% 
   arrange(rmse)
 
 result_table
@@ -147,10 +157,14 @@ pred_4_metrics
 
 save(covid_pred_4, pred_4_metrics, file = "Models/XGBoost/results/preds_4.rda")
 
+library(kableExtra)
 
 # Model 5 ----
 autoplot(covid_tune_5, metric = "rmse")
-show_best(covid_tune_5, metric = "rmse")[1,]
+show_best(covid_tune_5, metric = "rmse")[1,] %>% 
+  kbl() %>% 
+  kable_material()
+  
 
 covid_wflow <- bt_workflow_5 %>%
   finalize_workflow(select_best(covid_tune_5, metric = "rmse"))
@@ -161,12 +175,91 @@ covid_fit <- fit(covid_wflow, train)
 covid_pred_5 <- test %>%
   select(date, location, new_cases, new_cases_log) %>% 
   bind_cols(predict(covid_fit, test)) %>%
+  mutate(
+    .pred = ifelse(.pred < 0, 0, .pred),
+    pred = exp(.pred) - 1
+  ) %>% 
   arrange(location, date)
 
 ## Metric Set
 covid_metrics <- metric_set(rmse, mase, mae)
 
 # Apply Metrics
-pred_5_metrics <- covid_metrics(covid_pred_5, truth = new_cases_log, estimate = .pred)
+pred_5_metrics <- covid_metrics(covid_pred_5, truth = new_cases, estimate = pred)
+
+pred_5_metrics
 
 save(covid_pred_5, pred_5_metrics, file = "Models/XGBoost/results/preds_5.rda")
+
+load("Models/XGBoost/results/preds_5.rda")
+
+library(kableExtra)
+library(tidyverse)
+library(tidymodels)
+
+pivot_wider(pred_5_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    Name = "XGBoost Model 5"
+  ) %>% 
+  select(Name, mase, rmse, mae) %>% 
+  mutate_if(is.numeric, round, digits = 2) %>% 
+  kbl() %>% 
+  kable_material()
+  
+
+
+write_csv(pred_5_metrics, file = "Models/XGBoost/results/best_xgb_donald.csv")
+
+
+## Entire Data predictions
+covid_preds <- covid_clean %>%
+  select(date, location, new_cases, new_cases_log) %>% 
+  bind_cols(predict(covid_fit, covid_clean)) %>%
+  mutate(
+    .pred = ifelse(.pred < 0, 0, .pred),
+    pred = exp(.pred)
+  ) %>% 
+  arrange(location, date)
+
+# Country Metrics ----
+# Australia----
+Australia <- covid_pred_5 %>% 
+  filter(location == "Australia")
+
+## Apply Metrics
+Australia_metrics <- covid_metrics(Australia, truth = new_cases, estimate = pred)
+Australia_metrics
+
+# Argentina----
+Argentina <- covid_pred_5 %>% 
+  filter(location == "Argentina")
+
+## Apply Metrics
+Argentina_metrics <- covid_metrics(Argentina, truth = new_cases, estimate = pred)
+Argentina_metrics
+
+# Italy----
+Italy <- covid_pred_5 %>% 
+  filter(location == "Italy")
+
+## Apply Metrics
+Italy_metrics <- covid_metrics(Italy, truth = new_cases, estimate = pred)
+Italy_metrics
+
+# India----
+India <- covid_pred_5 %>% 
+  filter(location == "India")
+
+## Apply Metrics
+India_metrics <- covid_metrics(India, truth = new_cases, estimate = pred)
+India_metrics
+
+# Mexico----
+Mexico <- covid_pred_5 %>% 
+  filter(location == "Mexico")
+
+## Apply Metrics
+Mexico_metrics <- covid_metrics(Mexico, truth = new_cases, estimate = pred)
+Mexico_metrics
+
+

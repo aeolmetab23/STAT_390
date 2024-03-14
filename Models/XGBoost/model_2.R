@@ -34,7 +34,7 @@ test <- covid_clean %>%
   filter(date > "2023-03-26")
 
 # Folding(Resampling)
-folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
+folds <- vfold_cv(train, v = 10, repeats = 5, strata = new_cases)
 
 ## Recipe
 recipe <- recipe(new_cases ~ ., data = train) %>%

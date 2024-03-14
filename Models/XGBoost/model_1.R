@@ -34,7 +34,8 @@ test <- covid_clean %>%
   filter(date > "2023-03-26")
 
 # Folding(Resampling)
-folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
+# folds <- vfold_cv(train, v = 5, repeats = 3, strata = new_cases)
+folds <- vfold_cv(train, v = 10, repeats = 5, strata = new_cases)
 
 ## Recipe 1
 recipe_1 <- recipe(new_cases ~ ., data = train) %>%
@@ -90,7 +91,6 @@ time_log <- tic.log(format = FALSE)
 bt_tictoc_1 <- tibble(
   model = time_log[[1]]$msg,
   runtime = time_log[[1]]$toc - time_log[[1]]$tic)
-
 
 # Write out results
 save(covid_tune_1, bt_workflow_1, bt_tictoc_1, file = "Models/XGBoost/results/model_1.rda")
