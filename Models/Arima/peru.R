@@ -31,9 +31,7 @@ peru <- read_csv(here::here("Models/model_data/uni_v2/Peru_uni.csv"))
 
 # Mutate Columns
 peru <- peru %>% 
-  mutate(
-    date = ymd(date)
-  ) %>% 
+  mutate(date = ymd(date)) %>% 
   arrange(date)
 
 # Converting to Time Series Tibble
@@ -75,7 +73,7 @@ for (p in p_loop) {
 results # Best Result: p = 1, q = 3
 
 # Fit model with p = 1 and q = 3
-peru_final_fit <- Arima(train_ts, order=c(1, 1, 3))
+peru_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 peru_final_fit %>% forecast() %>% autoplot()
 
@@ -85,12 +83,12 @@ autoplot(peru_forecast)
 
 preds <- predict(peru_final_fit, n.ahead = 42)$pred
 
-peru_preds <- bind_cols(test, preds) %>% 
+Peru_Arima_Preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(peru_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Peru_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -102,7 +100,7 @@ ggplot(peru_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-peru_metrics <- peru_preds %>% 
+peru_metrics <- Peru_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Peru_Arima <- pivot_wider(peru_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -116,5 +114,30 @@ Peru_Arima <- pivot_wider(peru_metrics, names_from = .metric, values_from = .est
   )
 Peru_Arima
 
-save(Peru_Arima, peru_preds, file = "Models/Arima/results/Peru_metrics.rda")
+save(Peru_Arima, Peru_Arima_Preds, file = "Models/Arima/results/Peru_metrics.rda")
+
+# colors <- c("Predicted" = "skyblue3", "Actual" = "indianred")
+# 
+# ggplot(Peru_Arima_Preds) +
+#   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
+#   geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+#   theme_minimal() +
+#   labs(
+#     x = "Date",
+#     y = "New Cases",
+#     title = "Peru Arima",
+#     subtitle = "Predicited vs. Actual New Cases"
+#   )
+# 
+# 
+# ggplot(Peru_Arima_Preds) +
+#   geom_line(mapping = aes(date, preds, color = "Predicted"), linewidth = 1) +
+#   geom_line(mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
+#   theme_minimal() +
+#   labs(x = "Date",
+#        y = "New Cases",
+#        color = "",
+#        title = "New Cases for Peru") +
+#   theme(legend.position = "bottom") +
+#   scale_color_manual(values = colors)
 

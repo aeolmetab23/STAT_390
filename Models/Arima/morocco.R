@@ -75,7 +75,7 @@ for (p in p_loop) {
 results # Best Result: p = 2, q = 3
 
 # Fit model with p = 2 and q = 3
-morocco_final_fit <- Arima(train_ts, order=c(2, 1, 3))
+morocco_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 morocco_final_fit %>%
   forecast() %>%
@@ -87,10 +87,10 @@ autoplot(morocco_forecast)
 
 preds <- predict(morocco_final_fit, n.ahead = 42)$pred
 
-morocco_preds <- bind_cols(test, preds) %>% 
+Morocco_Arima_Preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(morocco_preds) +
+ggplot(Morocco_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
   geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
   theme_minimal() +
@@ -106,7 +106,7 @@ library(MLmetrics)
 
 covid_metrics <- metric_set(rmse, mase, mae)
 
-morocco_metrics <- morocco_preds %>% 
+morocco_metrics <- Morocco_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Morocco_Arima <- pivot_wider(morocco_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -120,5 +120,5 @@ Morocco_Arima <- pivot_wider(morocco_metrics, names_from = .metric, values_from 
   )
 Morocco_Arima
 
-save(Morocco_Arima, morocco_preds, file = "Models/Arima/results/Morocco_metrics.rda")
+save(Morocco_Arima, Morocco_Arima_Preds, file = "Models/Arima/results/Morocco_metrics.rda")
 

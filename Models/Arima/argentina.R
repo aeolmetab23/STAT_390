@@ -58,7 +58,7 @@ arg_fit <- Arima(train_ts, order=c(2,1,1))
 checkresiduals(arg_fit) # Q* = 17.26, df = 5, p-value = 0.004033
 
 # Alkaline
-arg_fit$aic # 3949.928
+arg_fit$aic # 2969.246
 
 # Grid Search
 p_loop <- seq(0:4)
@@ -70,7 +70,7 @@ results <- tibble(p = c(), q = c(), aic = c())
 # Run Loop
 for (p in p_loop) {
   for (q in q_loop) {
-    fit <- Arima(train_ts, order = c(p,1,q))
+    fit <- Arima(train_ts, order = c(p, 1, q))
     aic <- fit$aic
     results <- bind_rows(results, tibble(p = p, q = q, aic = aic)) %>% 
       arrange(aic)
@@ -79,7 +79,7 @@ for (p in p_loop) {
 results
 
 # running model with best result from grid search (p=1, q=4)
-arg_final_fit <- Arima(train_ts, order=c(1,1,4))
+arg_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 arg_final_fit %>%
   forecast() %>%
@@ -91,14 +91,14 @@ autoplot(arg_forecast)
 
 preds <- predict(arg_final_fit, n.ahead = 42)$pred
 
-arg_preds <- bind_cols(test, preds)
+Argentina_Arima_Preds <- bind_cols(test, preds)
 
-arg_preds <- arg_preds %>% 
+Argentina_Arima_Preds <- Argentina_Arima_Preds %>% 
   rename("preds" = "...3")
 
-ggplot(arg_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Argentina_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -110,7 +110,7 @@ ggplot(arg_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Argentina_metrics <- arg_preds %>% 
+Argentina_metrics <- Argentina_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
   
 Argentina_Arima <- pivot_wider(Argentina_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -124,5 +124,5 @@ Argentina_Arima <- pivot_wider(Argentina_metrics, names_from = .metric, values_f
   )
 Argentina_Arima
 
-save(Argentina_Arima, arg_preds, file = "Models/Arima/results/Argentina_metrics.rda")
+save(Argentina_Arima, Argentina_Arima_Preds, file = "Models/Arima/results/Argentina_metrics.rda")
 

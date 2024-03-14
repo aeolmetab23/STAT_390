@@ -75,7 +75,7 @@ for (p in p_loop) {
 results # Best Result: p = 1, q = 2, aic = 4188
 
 # Fit model with p = 1 and q = 2
-uk_final_fit <- Arima(train_ts, order=c(1, 1, 2))
+uk_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 uk_final_fit %>%
   forecast() %>%
@@ -87,12 +87,12 @@ autoplot(uk_forecast)
 
 preds <- predict(uk_final_fit, n.ahead = 42)$pred
 
-uk_preds <- bind_cols(test, preds) %>% 
+UK_Arima_Preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(uk_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(UK_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -104,7 +104,7 @@ ggplot(uk_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-uk_metrics <- uk_preds %>% 
+uk_metrics <- UK_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 UK_Arima <- pivot_wider(uk_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -118,5 +118,5 @@ UK_Arima <- pivot_wider(uk_metrics, names_from = .metric, values_from = .estimat
   )
 UK_Arima
 
-save(UK_Arima, uk_preds, file = "Models/Arima/results/UK_metrics.rda")
+save(UK_Arima, UK_Arima_Preds, file = "Models/Arima/results/UK_metrics.rda")
 

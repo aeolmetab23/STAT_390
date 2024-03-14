@@ -75,7 +75,7 @@ for (p in p_loop) {
 results # Best Result: p = 5, q = 3
 
 # Fit model with p = 5 and q = 3
-ita_final_fit <- Arima(train_ts, order = c(5, 1, 3))
+ita_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 ita_final_fit %>%
   forecast() %>%
@@ -87,12 +87,12 @@ autoplot(ita_forecast)
 
 preds <- predict(ita_final_fit, n.ahead = 42)$pred
 
-ita_preds <- bind_cols(test, preds) %>% 
+Italy_Arima_Preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(ita_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Italy_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -104,7 +104,7 @@ ggplot(ita_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-italy_metrics <- ita_preds %>% 
+italy_metrics <- Italy_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Italy_Arima <- pivot_wider(italy_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -118,5 +118,5 @@ Italy_Arima <- pivot_wider(italy_metrics, names_from = .metric, values_from = .e
   )
 Italy_Arima
 
-save(Italy_Arima, ita_preds, file = "Models/Arima/results/Italy_metrics.rda")
+save(Italy_Arima, Italy_Arima_Preds, file = "Models/Arima/results/Italy_metrics.rda")
 

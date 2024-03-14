@@ -76,7 +76,7 @@ for (p in p_loop) {
 results # Best Result: p = 2, q = 3
 
 # Fit model with p = 2 and q = 3
-swd_final_fit <- Arima(train_ts, order=c(2, 1, 3))
+swd_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 swd_final_fit %>%
   forecast() %>%
@@ -88,12 +88,12 @@ autoplot(swd_forecast)
 
 preds <- predict(swd_final_fit, n.ahead = 42)$pred
 
-swd_preds <- bind_cols(test, preds) %>% 
+Sweden_Arima_Preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(swd_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Sweden_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -105,7 +105,7 @@ ggplot(swd_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-sweden_metrics <- swd_preds %>% 
+sweden_metrics <- Sweden_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Sweden_Arima <- pivot_wider(sweden_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -119,5 +119,16 @@ Sweden_Arima <- pivot_wider(sweden_metrics, names_from = .metric, values_from = 
   )
 Sweden_Arima
 
-save(Sweden_Arima, swd_preds, file = "Models/Arima/results/Sweden_metrics.rda")
+save(Sweden_Arima, Sweden_Arima_Preds, file = "Models/Arima/results/Sweden_metrics.rda")
+
+# ggplot(Sweden_Arima_Preds) +
+#   geom_line(mapping = aes(date, preds, color = "Predicted"), linewidth = 1) +
+#   geom_line(mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
+#   theme_minimal() +
+#   labs(x = "Date",
+#        y = "New Cases",
+#        color = "",
+#        title = "New Cases for Sweden") +
+#   theme(legend.position = "bottom") +
+#   scale_color_manual(values = colors)
 

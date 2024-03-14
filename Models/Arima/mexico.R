@@ -81,7 +81,7 @@ for (p in p_loop) {
 results # Best Result: p = 1, q = 4
 
 # Fit model with p = 1 and q = 4
-mex_final_fit <- Arima(train_ts, order=c(1, 1, 4))
+mex_final_fit <- Arima(train_ts, order = c(results$p[1], 1, results$q[1]))
 
 mex_final_fit %>%
   forecast() %>%
@@ -93,12 +93,12 @@ autoplot(mex_forecast)
 
 preds <- predict(mex_final_fit, n.ahead = 42)$pred
 
-mex_preds <- bind_cols(test, preds) %>% 
+Mexico_Arima_Preds <- bind_cols(test, preds) %>% 
   rename(preds = "...3")
 
-ggplot(mex_preds) +
-  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Mexico_Arima_Preds) +
+  geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -112,7 +112,7 @@ library(MLmetrics)
 
 covid_metrics <- metric_set(rmse, mase, mae)
 
-mexico_metrics <- mex_preds %>% 
+mexico_metrics <- Mexico_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Mexico_Arima <- pivot_wider(mexico_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -126,5 +126,5 @@ Mexico_Arima <- pivot_wider(mexico_metrics, names_from = .metric, values_from = 
   )
 Mexico_Arima
 
-save(Mexico_Arima, mex_preds, file = "Models/Arima/results/Mexico_metrics.rda")
+save(Mexico_Arima, Mexico_Arima_Preds, file = "Models/Arima/results/Mexico_metrics.rda")
 

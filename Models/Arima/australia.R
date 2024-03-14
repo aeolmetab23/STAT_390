@@ -83,7 +83,7 @@ for (p in p_loop) {
 results
 
 # running model with best result from grid search (p=2, q=2)
-aus_final_fit <- Arima(train_ts, order=c(2,1,2))
+aus_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 aus_final_fit %>%
   forecast() %>%
@@ -95,12 +95,12 @@ autoplot(aus_forecast)
 
 preds <- predict(aus_final_fit, n.ahead = 42)$pred
 
-aus_preds <- bind_cols(test, preds) %>% 
+Australia_Arima_Preds <- bind_cols(test, preds) %>% 
   rename("preds" = "...3")
 
-ggplot(aus_preds) +
-  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
-  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+ggplot(Australia_Arima_Preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 1) +
   theme_minimal()+
   labs(
     x = "Date",
@@ -112,7 +112,7 @@ ggplot(aus_preds) +
 # Metrics ----
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Australia_metrics <- aus_preds %>% 
+Australia_metrics <- Australia_Arima_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Australia_Arima <- pivot_wider(Australia_metrics, names_from = .metric, values_from = .estimate) %>% 
@@ -126,5 +126,21 @@ Australia_Arima <- pivot_wider(Australia_metrics, names_from = .metric, values_f
   )
 Australia_Arima
 
-save(Australia_Arima, arg_preds, file = "Models/Arima/results/Australia_metrics.rda")
+save(Australia_Arima, Australia_Arima_Preds, file = "Models/Arima/results/Australia_metrics.rda")
+
+# colors <- c("Predicted" = "skyblue3", "Actual" = "indianred")
+# 
+# ggplot() +
+#   geom_line(aus_ts, mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
+#   geom_line(Australia_Arima_Preds, mapping = aes(date, preds, color = "Predicted"), linewidth = 1) +
+#   # geom_line(Australia_Arima_Preds, mapping = aes(date, new_cases, color = "Actual"), linewidth = 1) +
+#   theme_minimal() +
+#   labs(x = "Date",
+#        y = "New Cases",
+#        color = "",
+#        title = "New Cases for Australia") +
+#   theme(legend.position = "bottom") +
+#   scale_color_manual(values = colors)
+
+owid
 

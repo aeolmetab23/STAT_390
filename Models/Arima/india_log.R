@@ -38,22 +38,23 @@ ind <- read_csv(here::here("Models/model_data/uni_v2/India_uni.csv"))
 ind <- ind %>% 
   mutate(
     date = ymd(date),
+    new_cases_log = log(new_cases + 1)
   ) %>% 
   arrange(date)
 
 # Converting to Time Series Tibble
 ind_ts <- as_tsibble(ind, index = date)
 
-# splitting the data - 80% split
+# splitting the data - 70% split
 splits <- initial_time_split(ind_ts, prop = 0.8)
 train <- training(splits)
 test <- testing(splits)
 
 # Use gg_tsdisplay 
-gg_tsdisplay(train, y = new_cases, plot_type = "partial")
+gg_tsdisplay(train, y = new_cases_log, plot_type = "partial")
 
 # removing dates - making data univariate
-train_ts <- as.ts(train$new_cases)
+train_ts <- as.ts(train$new_cases_log)
 
 ind_fit <- Arima(train_ts, order=c(2,1,1))
 
@@ -80,7 +81,7 @@ for (p in p_loop) {
 }
 results # Best Result: p = 2, q = 4
 
-# Fit model with p = 2 and q = 4
+# Fit model with p = 1 and q = 4
 ind_final_fit <- Arima(train_ts, order=c(results$p[1], 1, results$q[1]))
 
 ind_final_fit %>%
@@ -94,11 +95,14 @@ autoplot(ind_forecast)
 preds <- predict(ind_final_fit, n.ahead = 42)$pred
 
 India_Arima_Preds <- bind_cols(test, preds) %>% 
-  rename(preds = "...3")
+  rename(preds = "...4") %>% 
+  mutate(
+    pred = exp(preds) - 1
+  )
 
 ggplot(India_Arima_Preds) +
   geom_line(mapping = aes(x = date, y = new_cases), color = "skyblue", linewidth = 1) +
-  geom_line(mapping = aes(x = date, y = preds), color = "indianred", linewidth = 1) +
+  geom_line(mapping = aes(x = date, y = pred), color = "indianred", linewidth = 1) +
   theme_minimal() +
   labs(
     x = "Date",
@@ -111,7 +115,7 @@ ggplot(India_Arima_Preds) +
 covid_metrics <- metric_set(rmse, mase, mae)
 
 india_metrics <- India_Arima_Preds %>% 
-  covid_metrics(new_cases, estimate = preds)
+  covid_metrics(new_cases, estimate = pred)
 
 India_Arima <- pivot_wider(india_metrics, names_from = .metric, values_from = .estimate) %>% 
   mutate(
@@ -124,7 +128,7 @@ India_Arima <- pivot_wider(india_metrics, names_from = .metric, values_from = .e
   )
 India_Arima
 
-save(India_Arima, India_Arima_Preds, file = "Models/Arima/results/India_metrics.rda")
+# save(India_Arima, India_Arima_Preds, file = "Models/Arima/results/India_metrics.rda")
 
 # n = 3
 # exp(log(n+1)) - 1
