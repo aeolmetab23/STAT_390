@@ -157,16 +157,43 @@ Peru_future_preds <- Peru_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Peru_preds <- bind_cols(test, Peru_future_preds) %>% 
-  rename(preds = yhat)
+Peru_Prophet_multi_flat_Preds <- bind_cols(test, Peru_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Peru_metrics <- Peru_preds %>% 
+Peru_metrics <- Peru_Prophet_multi_flat_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Peru_metrics
 
-save(Peru_metrics, Peru_preds, file = "Models/Prophet - Multivariate/results/Peru_metrics.rda")
+Peru_Prophet_multi_flat <- pivot_wider(Peru_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Peru"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Peru_Prophet_multi_flat
+
+save(Peru_Prophet_multi_flat, Peru_Prophet_multi_flat_Preds,
+     file = "Models/Prophet - Multivariate/results/Peru_flat_metrics.rda")
+
+# # view seasonality trends
+ggplot(Peru_Prophet_multi_flat_Preds) +
+  geom_line(aes(date, y = preds), show.legend = F, color = "skyblue") +
+  geom_line(aes(date, y = new_cases), show.legend = F, color = "indianred") +
+  theme_minimal() +
+  scale_fill_viridis_c(option = "H") +
+  labs(
+    x = "Month",
+    y = "New Cases",
+    fill = "",
+    title = "New Cases by Month",
+    subtitle = "Location: Argentina"
+  )
 

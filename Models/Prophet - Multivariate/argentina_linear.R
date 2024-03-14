@@ -66,7 +66,7 @@ Argentina_clean_scaled <- as.data.frame(Argentina_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(Argentina_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 3)
 
 # Replace the original column with the imputed column, unscaling if necessary
 Argentina_cleaner <- Argentina_clean %>% 
@@ -114,7 +114,7 @@ Argentina_train <- train %>%
   rename("ds" = date, "y" = new_cases)
 
 # model
-Argentina_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = FALSE,
+Argentina_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = TRUE,
                            weekly.seasonality = TRUE, daily.seasonality = FALSE,
                            seasonality.mode = "additive", fit = TRUE)
 
@@ -157,16 +157,41 @@ Argentina_future_preds <- Argentina_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Argentina_preds <- bind_cols(test, Argentina_future_preds) %>% 
-  rename(preds = yhat)
+Argentina_Prophet_multi_linear_Preds <- bind_cols(test, Argentina_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Argentina_metrics <- Argentina_preds %>% 
+Argentina_metrics <- Argentina_Prophet_multi_linear_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Argentina_metrics
 
-save(Argentina_metrics, Argentina_preds, file = "Models/Prophet - Multivariate/results_linear/Argentina_metrics.rda")
+Argentina_Prophet_multi_linear <- pivot_wider(Argentina_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Argentina"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Argentina_Prophet_multi_linear
+
+# ggplot(Argentina_Prophet_multi_linear_Preds) +
+#   geom_line(aes(x = date, y = new_cases), color = "red") +
+#   geom_line(aes(x = date, y = preds), color = "blue") +
+#   theme_minimal() +
+#   labs(
+#     x = "",
+#     y = "New Cases",
+#     fill = "",
+#     title = "New Cases Since 2020",
+#     subtitle = "Location: Argentina"
+#   )
+
+save(Argentina_Prophet_multi_linear, Argentina_Prophet_multi_linear_Preds,
+     file = "Models/Prophet - Multivariate/results_linear/Argentina_linear_metrics.rda")
 

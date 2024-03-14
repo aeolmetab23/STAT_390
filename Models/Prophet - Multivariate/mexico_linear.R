@@ -66,7 +66,7 @@ Mexico_clean_scaled <- as.data.frame(Mexico_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(Mexico_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 5)
 
 # Replace the original column with the imputed column, unscaling if necessary
 Mexico_cleaner <- Mexico_clean %>% 
@@ -115,8 +115,8 @@ Mexico_train <- train %>%
 
 # model
 Mexico_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = FALSE,
-                      weekly.seasonality = TRUE, daily.seasonality = FALSE,
-                      seasonality.mode = "additive", fit = TRUE)
+                        weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                        seasonality.mode = "additive", fit = TRUE)
 
 # Add Regressors
 Mexico_model = add_regressor(Mexico_model,"new_deaths", standardize = FALSE)
@@ -157,16 +157,29 @@ Mexico_future_preds <- Mexico_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Mexico_preds <- bind_cols(test, Mexico_future_preds) %>% 
-  rename(preds = yhat)
+Mexico_Prophet_multi_linear_Preds <- bind_cols(test, Mexico_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Mexico_metrics <- Mexico_preds %>% 
+Mexico_metrics <- Mexico_Prophet_multi_linear_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Mexico_metrics
 
-save(Mexico_metrics, Mexico_preds, file = "Models/Prophet - Multivariate/results_linear/Mexico_metrics.rda")
+Mexico_Prophet_multi_linear <- pivot_wider(Mexico_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Mexico"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Mexico_Prophet_multi_linear
+
+save(Mexico_Prophet_multi_linear, Mexico_Prophet_multi_linear_Preds,
+     file = "Models/Prophet - Multivariate/results_linear/Mexico_linear_metrics.rda")
 

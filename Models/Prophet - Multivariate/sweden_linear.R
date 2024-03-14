@@ -53,7 +53,7 @@ Sweden_clean <- Sweden %>%
   mutate(
     hosp_patients = ifelse(is.na(hosp_patients), 0, hosp_patients),
     icu_patients = ifelse(is.na(icu_patients), 0, icu_patients),
-    new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
+    # new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
   )
 
 # Begin Imputation
@@ -66,7 +66,7 @@ Sweden_clean_scaled <- as.data.frame(Sweden_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(Sweden_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 2)
 
 # Replace the original column with the imputed column, unscaling if necessary
 Sweden_cleaner <- Sweden_clean %>% 
@@ -74,7 +74,7 @@ Sweden_cleaner <- Sweden_clean %>%
     positive_rate = completed_data$positive_rate,
     excess_mortality = completed_data$excess_mortality,
     stringency_index = completed_data$stringency_index,
-    people_vaccinated = completed_data$people_vaccinated
+    # people_vaccinated = completed_data$people_vaccinated
   )
 
 Sweden_ts <- as_tsibble(Sweden_cleaner, index = date)
@@ -115,14 +115,14 @@ Sweden_train <- train %>%
 
 # model
 Sweden_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = FALSE,
-                    weekly.seasonality = TRUE, daily.seasonality = FALSE,
-                    seasonality.mode = "additive", fit = TRUE)
+                        weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                        seasonality.mode = "additive", fit = TRUE)
 
 # Add Regressors
 Sweden_model = add_regressor(Sweden_model,"new_deaths", standardize = FALSE)
 Sweden_model = add_regressor(Sweden_model,"icu_patients", standardize = FALSE)
 Sweden_model = add_regressor(Sweden_model,'positive_rate', standardize = FALSE)
-Sweden_model = add_regressor(Sweden_model,'new_vaccinations', standardize = FALSE)
+# Sweden_model = add_regressor(Sweden_model,'new_vaccinations', standardize = FALSE)
 Sweden_model = add_regressor(Sweden_model,'stringency_index', standardize = FALSE)
 Sweden_model = add_regressor(Sweden_model,'excess_mortality', standardize = FALSE)
 
@@ -139,7 +139,7 @@ future_Sweden <- make_future_dataframe(Sweden_fit, periods = 42, freq = "week")
 future_Sweden$new_deaths = head(Sweden_ts$new_deaths, nrow(future_Sweden))
 future_Sweden$icu_patients = head(Sweden_ts$icu_patients, nrow(future_Sweden))
 future_Sweden$positive_rate = head(Sweden_ts$positive_rate, nrow(future_Sweden))
-future_Sweden$new_vaccinations = head(Sweden_ts$new_vaccinations, nrow(future_Sweden))
+# future_Sweden$new_vaccinations = head(Sweden_ts$new_vaccinations, nrow(future_Sweden))
 future_Sweden$stringency_index = head(Sweden_ts$stringency_index, nrow(future_Sweden))
 future_Sweden$excess_mortality = head(Sweden_ts$excess_mortality, nrow(future_Sweden))
 
@@ -157,16 +157,29 @@ Sweden_future_preds <- Sweden_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Sweden_preds <- bind_cols(test, Sweden_future_preds) %>% 
-  rename(preds = yhat)
+Sweden_Prophet_multi_linear_Preds <- bind_cols(test, Sweden_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Sweden_metrics <- Sweden_preds %>% 
+Sweden_metrics <- Sweden_Prophet_multi_linear_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Sweden_metrics
 
-save(Sweden_metrics, Sweden_preds, file = "Models/Prophet - Multivariate/results_linear/Sweden_metrics.rda")
+Sweden_Prophet_multi_linear <- pivot_wider(Sweden_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Sweden"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Sweden_Prophet_multi_linear
+
+save(Sweden_Prophet_multi_linear, Sweden_Prophet_multi_linear_Preds,
+     file = "Models/Prophet - Multivariate/results_linear/Sweden_linear_metrics.rda")
 

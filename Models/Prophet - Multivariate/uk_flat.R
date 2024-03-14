@@ -53,7 +53,7 @@ UK_clean <- UK %>%
   mutate(
     hosp_patients = ifelse(is.na(hosp_patients), 0, hosp_patients),
     icu_patients = ifelse(is.na(icu_patients), 0, icu_patients),
-    new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
+    # new_vaccinations = ifelse(is.na(new_vaccinations), 0, new_vaccinations)
   )
 
 # Begin Imputation
@@ -66,7 +66,7 @@ UK_clean_scaled <- as.data.frame(UK_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(UK_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 4)
 
 # Replace the original column with the imputed column, unscaling if necessary
 UK_cleaner <- UK_clean %>% 
@@ -74,7 +74,7 @@ UK_cleaner <- UK_clean %>%
     positive_rate = completed_data$positive_rate,
     excess_mortality = completed_data$excess_mortality,
     stringency_index = completed_data$stringency_index,
-    people_vaccinated = completed_data$people_vaccinated
+    # people_vaccinated = completed_data$people_vaccinated
   )
 
 UK_ts <- as_tsibble(UK_cleaner, index = date)
@@ -122,7 +122,7 @@ UK_model <- prophet(df = NULL, growth = "flat", yearly.seasonality = FALSE,
 UK_model = add_regressor(UK_model,"new_deaths", standardize = FALSE)
 UK_model = add_regressor(UK_model,"icu_patients", standardize = FALSE)
 UK_model = add_regressor(UK_model,'positive_rate', standardize = FALSE)
-UK_model = add_regressor(UK_model,'new_vaccinations', standardize = FALSE)
+# UK_model = add_regressor(UK_model,'new_vaccinations', standardize = FALSE)
 UK_model = add_regressor(UK_model,'stringency_index', standardize = FALSE)
 UK_model = add_regressor(UK_model,'excess_mortality', standardize = FALSE)
 
@@ -139,7 +139,7 @@ future_UK <- make_future_dataframe(UK_fit, periods = 42, freq = "week")
 future_UK$new_deaths = head(UK_ts$new_deaths, nrow(future_UK))
 future_UK$icu_patients = head(UK_ts$icu_patients, nrow(future_UK))
 future_UK$positive_rate = head(UK_ts$positive_rate, nrow(future_UK))
-future_UK$new_vaccinations = head(UK_ts$new_vaccinations, nrow(future_UK))
+# future_UK$new_vaccinations = head(UK_ts$new_vaccinations, nrow(future_UK))
 future_UK$stringency_index = head(UK_ts$stringency_index, nrow(future_UK))
 future_UK$excess_mortality = head(UK_ts$excess_mortality, nrow(future_UK))
 
@@ -157,16 +157,42 @@ UK_future_preds <- UK_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-UK_preds <- bind_cols(test, UK_future_preds) %>% 
-  rename(preds = yhat)
+UK_Prophet_multi_flat_Preds <- bind_cols(test, UK_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-UK_metrics <- UK_preds %>% 
+UK_metrics <- UK_Prophet_multi_flat_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 UK_metrics
 
-save(UK_metrics, UK_preds, file = "Models/Prophet - Multivariate/results/UK_metrics.rda")
+UK_Prophet_multi_flat <- pivot_wider(UK_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "UK"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+UK_Prophet_multi_flat
+
+save(UK_Prophet_multi_flat, UK_Prophet_multi_flat_Preds,
+     file = "Models/Prophet - Multivariate/results/UK_flat_metrics.rda")
+
+# ggplot(UK_Prophet_multi_flat_Preds) +
+#   geom_line(aes(date, y = preds), show.legend = F, color = "skyblue") +
+#   geom_line(aes(date, y = new_cases), show.legend = F, color = "indianred") +
+#   theme_minimal() +
+#   scale_fill_viridis_c(option = "H") +
+#   labs(
+#     x = "Month",
+#     y = "New Cases",
+#     fill = "",
+#     title = "New Cases by Month",
+#     subtitle = "Location: Argentina"
+#   )
 

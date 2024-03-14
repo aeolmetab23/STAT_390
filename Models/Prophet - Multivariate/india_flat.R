@@ -66,7 +66,7 @@ India_clean_scaled <- as.data.frame(India_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(India_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 3)
 
 # Replace the original column with the imputed column, unscaling if necessary
 India_cleaner <- India_clean %>% 
@@ -155,16 +155,29 @@ India_future_preds <- India_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-India_preds <- bind_cols(test, India_future_preds) %>% 
-  rename(preds = yhat)
+India_Prophet_multi_flat_Preds <- bind_cols(test, India_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-India_metrics <- India_preds %>% 
+India_metrics <- India_Prophet_multi_flat_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 India_metrics
 
-save(India_metrics, India_preds, file = "Models/Prophet - Multivariate/results/India_metrics.rda")
+India_Prophet_multi_flat <- pivot_wider(India_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "India"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+India_Prophet_multi_flat
+
+save(India_Prophet_multi_flat, India_Prophet_multi_flat_Preds,
+     file = "Models/Prophet - Multivariate/results/India_flat_metrics.rda")
 

@@ -155,16 +155,29 @@ India_future_preds <- India_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-India_preds <- bind_cols(test, India_future_preds) %>% 
-  rename(preds = yhat)
+India_Prophet_multi_linear_Preds <- bind_cols(test, India_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-India_metrics <- India_preds %>% 
+India_metrics <- India_Prophet_multi_linear_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 India_metrics
 
-save(India_metrics, India_preds, file = "Models/Prophet - Multivariate/results_linear/India_metrics.rda")
+India_Prophet_multi_linear <- pivot_wider(India_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "India"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+India_Prophet_multi_linear
+
+save(India_Prophet_multi_linear, India_Prophet_multi_linear_Preds,
+     file = "Models/Prophet - Multivariate/results_linear/India_linear_metrics.rda")
 

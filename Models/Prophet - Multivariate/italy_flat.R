@@ -66,7 +66,7 @@ Italy_clean_scaled <- as.data.frame(Italy_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(Italy_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 4)
 
 # Replace the original column with the imputed column, unscaling if necessary
 Italy_cleaner <- Italy_clean %>% 
@@ -157,16 +157,28 @@ Italy_future_preds <- Italy_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Italy_preds <- bind_cols(test, Italy_future_preds) %>% 
-  rename(preds = yhat)
+Italy_Prophet_multi_flat_Preds <- bind_cols(test, Italy_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Italy_metrics <- Italy_preds %>% 
+Italy_metrics <- Italy_Prophet_multi_flat_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Italy_metrics
 
-save(Italy_metrics, Italy_preds, file = "Models/Prophet - Multivariate/results/Italy_metrics.rda")
+Italy_Prophet_multi_flat <- pivot_wider(Italy_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Italy"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Italy_Prophet_multi_flat
 
+save(Italy_Prophet_multi_flat, Italy_Prophet_multi_flat_Preds,
+     file = "Models/Prophet - Multivariate/results/Italy_flat_metrics.rda")

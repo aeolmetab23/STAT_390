@@ -66,7 +66,7 @@ Morocco_clean_scaled <- as.data.frame(Morocco_clean_scaled)
 # Performing multiple imputation
 library(mice)
 imputed_data <- mice(Morocco_clean_scaled, m = 5, method = 'pmm', maxit = 5)
-completed_data <- complete(imputed_data, 1)
+completed_data <- complete(imputed_data, 2)
 
 # Replace the original column with the imputed column, unscaling if necessary
 Morocco_cleaner <- Morocco_clean %>% 
@@ -115,8 +115,8 @@ Morocco_train <- train %>%
 
 # model
 Morocco_model <- prophet(df = NULL, growth = "linear", yearly.seasonality = FALSE,
-                      weekly.seasonality = TRUE, daily.seasonality = FALSE,
-                      seasonality.mode = "additive", fit = TRUE)
+                         weekly.seasonality = TRUE, daily.seasonality = FALSE,
+                         seasonality.mode = "additive", fit = TRUE)
 
 # Add Regressors
 Morocco_model = add_regressor(Morocco_model,"new_deaths", standardize = FALSE)
@@ -155,16 +155,29 @@ Morocco_future_preds <- Morocco_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Morocco_preds <- bind_cols(test, Morocco_future_preds) %>% 
-  rename(preds = yhat)
+Morocco_Prophet_multi_linear_Preds <- bind_cols(test, Morocco_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Morocco_metrics <- Morocco_preds %>% 
+Morocco_metrics <- Morocco_Prophet_multi_linear_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Morocco_metrics
 
-save(Morocco_metrics, Morocco_preds, file = "Models/Prophet - Multivariate/results_linear/Morocco_metrics.rda")
+Morocco_Prophet_multi_linear <- pivot_wider(Morocco_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Morocco"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Morocco_Prophet_multi_linear
+
+save(Morocco_Prophet_multi_linear, Morocco_Prophet_multi_linear_Preds,
+     file = "Models/Prophet - Multivariate/results_linear/Morocco_linear_metrics.rda")
 

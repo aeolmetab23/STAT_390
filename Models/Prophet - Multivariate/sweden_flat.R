@@ -157,16 +157,29 @@ Sweden_future_preds <- Sweden_forecast %>%
   select(yhat) %>% 
   tail(n = 42)
 
-Sweden_preds <- bind_cols(test, Sweden_future_preds) %>% 
-  rename(preds = yhat)
+Sweden_Prophet_multi_flat_Preds <- bind_cols(test, Sweden_future_preds) %>% 
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
 
-Sweden_metrics <- Sweden_preds %>% 
+Sweden_metrics <- Sweden_Prophet_multi_flat_Preds %>% 
   covid_metrics(new_cases, estimate = preds)
 
 Sweden_metrics
 
-save(Sweden_metrics, Sweden_preds, file = "Models/Prophet - Multivariate/results/Sweden_metrics.rda")
+Sweden_Prophet_multi_flat <- pivot_wider(Sweden_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Sweden"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Sweden_Prophet_multi_flat
+
+save(Sweden_Prophet_multi_flat, Sweden_Prophet_multi_flat_Preds,
+     file = "Models/Prophet - Multivariate/results/Sweden_flat_metrics.rda")
 

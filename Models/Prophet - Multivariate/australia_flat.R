@@ -158,7 +158,21 @@ Australia_future_preds <- Australia_forecast %>%
   tail(n = 42)
 
 Australia_preds <- bind_cols(test, Australia_future_preds) %>% 
-  rename(preds = yhat)
+  rename(preds = yhat) %>% 
+  mutate(
+    preds = ifelse(preds < 0, 0, preds)
+  )
+
+ggplot(Australia_preds) +
+  geom_line(aes(x = date, y = new_cases), color = "skyblue", linewidth = 2) +
+  geom_line(aes(x = date, y = preds), color = "indianred", linewidth = 2) +
+  theme_minimal() +
+  labs(
+    title = "Australia Forecast",
+    subtitle = "Predicted vs. Actual Results",
+    x = "Date",
+    y = "New Cases"
+  )
 
 # Metrics
 covid_metrics <- metric_set(rmse, mase, mae)
@@ -168,5 +182,14 @@ Australia_metrics <- Australia_preds %>%
 
 Australia_metrics
 
-save(Australia_metrics, Australia_preds, file = "Models/Prophet - Multivariate/results/Australia_metrics.rda")
+Australia_Prophet_multi_flat <- pivot_wider(Australia_metrics, names_from = .metric, values_from = .estimate) %>% 
+  mutate(
+    location = "Australia"
+  ) %>% 
+  select(
+    location, rmse, mase, mae, .estimator
+  )
+Australia_Prophet_multi_flat
 
+save(Australia_Prophet_multi_flat, Australia_preds,
+     file = "Models/Prophet - Multivariate/results/Australia_flat_metrics.rda")
